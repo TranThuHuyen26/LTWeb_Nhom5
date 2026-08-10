@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Từ vựng — {{ d.name }}{% endblock %}
+{% block content %}
+<div style="font-size:11px;color:var(--blue);font-weight:700;text-decoration:none;margin-bottom:8px;display:block;"><a href="/admin" style="color:var(--blue);text-decoration:none;">← Admin</a></div>
+<div style="font-size:20px;font-weight:900;margin-bottom:18px;">{{ d.emoji }} {{ d.name }} <span style="font-size:14px;color:var(--text2);font-weight:500;">({{ words|length }} từ)</span></div>
+<div class="card" style="margin-bottom:18px;"><div class="card-body">
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px;">➕ Thêm từ mới</div>
+  <div class="frow">
+    <div class="fgrp"><label>Từ vựng *</label><input type="text" id="w-word" placeholder="VD: analyze"></div>
+    <div class="fgrp"><label>Phiên âm IPA</label><input type="text" id="w-pron" placeholder="VD: ˈænəlaɪz"></div>
+    <div class="fgrp"><label>Loại từ</label><select id="w-pos"><option>noun</option><option>verb</option><option>adjective</option><option>adverb</option><option>expression</option></select></div>
+  </div>
+  <div class="fgrp"><label>Nghĩa (tiếng Việt) *</label><input type="text" id="w-mean" placeholder="VD: (v) phân tích"></div>
+  <div class="frow">
+    <div class="fgrp"><label>Ví dụ (EN)</label><input type="text" id="w-ex" placeholder="We need to analyze the data."></div>
+    <div class="fgrp"><label>Dịch ví dụ (VN)</label><input type="text" id="w-exvn" placeholder="Chúng ta cần phân tích dữ liệu."></div>
+  </div>
+  <div class="fgrp"><label>Từ đồng nghĩa</label><input type="text" id="w-syn" placeholder="examine, inspect, study"></div>
+  <button class="btn btn-g" onclick="addWord()">➕ Thêm</button>
+</div></div>
+<div class="t-wrap">
+<table class="atable" id="wtbl">
+  <thead><tr><th>#</th><th>Từ</th><th>Phiên âm</th><th>Nghĩa</th><th>Loại</th><th>Đồng nghĩa</th><th></th></tr></thead>
+  <tbody>{% for w in words %}
+  <tr id="wr-{{ w.id }}">
+    <td style="color:var(--text3);">{{ loop.index }}</td>
+    <td><strong>{{ w.word }}</strong></td>
+    <td style="font-size:12px;color:var(--blue);font-style:italic;">{{ w.pronunciation }}</td>
+    <td>{{ w.meaning }}</td>
+    <td>{% if w.part_of_speech %}<span class="w-pos">{{ w.part_of_speech }}</span>{% endif %}</td>
+    <td style="font-size:11px;color:var(--text3);">{{ w.synonyms or '—' }}</td>
+    <td style="display:flex;gap:6px;">
+      <button class="btn-xs" style="background:var(--blue);color:#fff;" onclick='openEdit({{ w.id }},{{ w|tojson }})'>✏️</button>
+      <button class="btn-xs danger" onclick="delWord({{ w.id }})">🗑️</button>
+    </td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:20px;padding:28px;width:min(560px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-size:16px;font-weight:800;">✏️ Chỉnh sửa từ vựng</div>
+      <button onclick="closeEdit()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);">✕</button>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Từ vựng *</label><input id="e-word" type="text"></div>
+      <div class="fgrp"><label>Phiên âm IPA</label><input id="e-pron" type="text"></div>
+      <div class="fgrp"><label>Loại từ</label>
+        <select id="e-pos"><option>noun</option><option>verb</option><option>adjective</option><option>adverb</option><option>expression</option></select>
+      </div>
+    </div>
+    <div class="fgrp"><label>Nghĩa (tiếng Việt) *</label><input id="e-mean" type="text"></div>
+    <div class="frow">
+      <div class="fgrp"><label>Ví dụ (EN)</label><input id="e-ex" type="text"></div>
+      <div class="fgrp"><label>Dịch ví dụ (VN)</label><input id="e-exvn" type="text"></div>
+    </div>
+    <div class="fgrp"><label>Từ đồng nghĩa</label><input id="e-syn" type="text"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-g" onclick="saveEdit()" style="flex:1;">💾 Lưu thay đổi</button>
+      <button class="btn" onclick="closeEdit()" style="background:var(--bg3);color:var(--text1);">Huỷ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DID={{ d.id }};
+let editId=null;
+
+function openEdit(id, w){
+  editId=id;
+  document.getElementById('e-word').value=w.word||'';
+  document.getElementById('e-pron').value=w.pronunciation||'';
+  document.getElementById('e-mean').value=w.meaning||'';
+  document.getElementById('e-ex').value=w.example||'';
+  document.getElementById('e-exvn').value=w.example_vn||'';
+  document.getElementById('e-syn').value=w.synonyms||'';
+  const sel=document.getElementById('e-pos');
+  for(let o of sel.options) o.selected=(o.value===(w.part_of_speech||'noun'));
+  const m=document.getElementById('edit-modal');
+  m.style.display='flex';
+}
+function closeEdit(){
+  document.getElementById('edit-modal').style.display='none';
+  editId=null;
+}
+async function saveEdit(){
+  const word=document.getElementById('e-word').value.trim();
+  const mean=document.getElementById('e-mean').value.trim();
+  if(!word||!mean){alert('Nhập từ và nghĩa!');return;}
+  const r=await fetch(`/admin/words/${editId}/edit`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({word,pron:document.getElementById('e-pron').value,meaning:mean,
+      pos:document.getElementById('e-pos').value,ex:document.getElementById('e-ex').value,
+      exvn:document.getElementById('e-exvn').value,syn:document.getElementById('e-syn').value})});
+  if((await r.json()).ok){closeEdit();location.reload();}
+}
+document.getElementById('edit-modal').addEventListener('click',function(e){
+  if(e.target===this)closeEdit();
+});
+async function addWord(){
+  const word=document.getElementById('w-word').value.trim();
+  const mean=document.getElementById('w-mean').value.trim();
+  if(!word||!mean){alert('Nhập từ và nghĩa!');return;}
+  const r=await fetch('/admin/words/add',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({did:DID,word,pron:document.getElementById('w-pron').value,meaning:mean,
+      pos:document.getElementById('w-pos').value,ex:document.getElementById('w-ex').value,
+      exvn:document.getElementById('w-exvn').value,syn:document.getElementById('w-syn').value})});
+  if((await r.json()).ok)location.reload();
+}
+async function delWord(id){
+  if(!confirm('Xoá từ này?'))return;
+  const r=await fetch(`/admin/words/${id}/delete`,{method:'POST'});
+  if((await r.json()).ok)document.getElementById('wr-'+id).remove();
+}
+</script>
+{% endblock %}

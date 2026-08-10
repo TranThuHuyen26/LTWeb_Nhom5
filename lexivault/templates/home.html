@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}LexiVault Pro — Trang chủ{% endblock %}
+{% block content %}
+<!-- Header Section -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px;">
+  <div>
+    <div style="font-size:28px;font-weight:900;margin-bottom:6px;">Xin chào, {{ u.avatar }} {{ u.username }}! 👋</div>
+    <div style="color:var(--text2);font-size:14px;">Tiếp tục cuộc hành trình học tập của bạn</div>
+  </div>
+  <a href="/games" class="btn btn-p btn-lg" style="flex-shrink:0;">🎮 Chơi game ngay</a>
+</div>
+
+<!-- Learning Progress Stats -->
+<div class="stats-section">
+  <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">📈 Tiến độ học tập</div>
+  <div class="stats-strip">
+    <div class="stat-box"><div class="stat-ico">📚</div><div class="stat-val">{{ my_decks|length }}</div><div class="stat-lbl">Bộ từ đang học</div></div>
+    <div class="stat-box"><div class="stat-ico">🔤</div><div class="stat-val">{{ total_words }}</div><div class="stat-lbl">Từ đã gặp</div></div>
+    <div class="stat-box"><div class="stat-ico">⭐</div><div class="stat-val">{{ mastered }}</div><div class="stat-lbl">Từ đã thuộc</div></div>
+    <div class="stat-box"><div class="stat-ico">🔥</div><div class="stat-val">{{ u.streak }}</div><div class="stat-lbl">Streak ngày</div></div>
+  </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="tabs-section">
+  <div class="tabs" id="main-tabs">
+    <button class="tab on" onclick="showTab('lib',this)">📖 Thư viện của tôi</button>
+    <button class="tab" onclick="showTab('explore',this)">🔍 Khám phá</button>
+    <button class="tab" onclick="showTab('leaderboard',this)">🏆 Xếp hạng</button>
+    <button class="tab" onclick="showTab('history',this)">📊 Lịch sử</button>
+  </div>
+</div>
+
+<!-- Library Tab Content -->
+<div id="tab-lib" class="tab-content">
+  {% if my_decks %}
+  <div style="margin-bottom:16px;">
+    <p style="color:var(--text2);font-size:13px;">Bạn có {{ my_decks|length }} bộ từ đang học. Chọn một bộ để tiếp tục hoặc xem chi tiết.</p>
+  </div>
+  <div class="deck-grid">
+    {% for d in my_decks %}
+    {% set pct = ((d.learned or 0)*100//(d.word_count or 1)) %}
+    <a href="/deck/{{ d.id }}" class="deck-card">
+      <div class="deck-cover" style="{{ cover_bg(d.language, d.color) }}">
+        <span>{{ d.emoji }}</span>
+        <div class="dc-top-badges">
+          <span class="tag tag-{{ d.language }}">{{ lang_label(d.language) }}</span>
+        </div>
+      </div>
+      <div class="deck-body">
+        <div class="deck-name">{{ d.name }}</div>
+        <div class="deck-meta">
+          <span class="tag tag-{{ d.level[:3] }}">{{ level_label(d.level) }}</span>
+          <span style="font-size:11px;color:var(--text3);">{{ d.word_count }} từ</span>
+        </div>
+        <div class="deck-prog"><div class="deck-prog-fill" style="width:{{ pct }}%"></div></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px;">{{ d.learned or 0 }}/{{ d.word_count }} ({{ pct }}%)</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="e-ico" style="font-size:64px;">📭</div>
+    <p style="font-size:16px;font-weight:700;margin:12px 0;">Chưa có bộ từ nào</p>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:16px;">Hãy khám phá bộ từ mới để bắt đầu học tập!</p>
+    <button class="btn btn-g" onclick="document.querySelector('[onclick*=\"explore\"]').click()">🔍 Khám phá bộ từ</button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Explore Tab Content -->
+<div id="tab-explore" style="display:none;" class="tab-content">
+  <div style="margin-bottom:18px;">
+    <p style="color:var(--text2);font-size:13px;margin-bottom:12px;">Lọc theo ngôn ngữ mà bạn quan tâm:</p>
+    <div class="tabs" style="margin-bottom:20px;">
+      <button class="tab on" onclick="filterLang('all',this)">🌍 Tất cả</button>
+      <button class="tab" onclick="filterLang('en',this)"><img src="/static/flags/gb.png" width="30"></button>
+      <button class="tab" onclick="filterLang('ja',this)"><img src="/static/flags/jp.png" width="30"></button>
+      <button class="tab" onclick="filterLang('ko',this)"><img src="/static/flags/kr.png" width="30"></button>
+    </div>
+  </div>
+  <div class="deck-grid" id="explore-grid">
+    {% for d in decks %}
+    <div class="deck-card" data-lang="{{ d.language }}" style="cursor:default;">
+      <div class="deck-cover" style="{{ cover_bg(d.language, d.color) }}">
+        <span>{{ d.emoji }}</span>
+        <div class="dc-top-badges">
+          <span class="tag tag-{{ d.language }}">{{ lang_label(d.language) }}</span>
+        </div>
+      </div>
+      <div class="deck-body">
+        <div class="deck-name">{{ d.name }}</div>
+        <div class="deck-desc">{{ d.description }}</div>
+        <div class="deck-meta">
+          <span class="tag tag-{{ d.level[:3] }}">{{ level_label(d.level) }}</span>
+          <span style="font-size:11px;color:var(--text3);">{{ d.word_count }} từ · ⬇️ {{ d.download_count }}</span>
+          {% if d.mastered %}<span style="font-size:11px;color:var(--green);"><img src="/static/icons/star.png" width="20"> {{ d.mastered }} thuộc</span>{% endif %}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+          <a href="/deck/{{ d.id }}" class="btn btn-b btn-sm">Chi tiết</a>
+          {% if d.in_lib %}
+          <button class="btn btn-ghost btn-sm" onclick="rmDeck({{ d.id }},this)">✓ Đã thêm</button>
+          {% else %}
+          <button class="btn btn-g btn-sm" onclick="addDeck({{ d.id }},this)">+ Thêm</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Leaderboard Tab Content -->
+<div id="tab-leaderboard" style="display:none;max-width:500px;" class="tab-content">
+  <div class="sec-title" style="margin-bottom:20px;"><img src="/static/icons/achieve.png" width="45" style="margin-right:8px;"> Bảng xếp hạng XP</div>
+  {% for lb in leaderboard %}
+  <div class="lb-row">
+    <div class="lb-rank {{ 'gold' if loop.index==1 else 'silver' if loop.index==2 else 'bronze' if loop.index==3 else '' }}">
+      {{ '🥇' if loop.index==1 else '🥈' if loop.index==2 else '🥉' if loop.index==3 else loop.index }}
+    </div>
+    <div class="lb-avatar">{{ lb.avatar }}</div>
+    <div class="lb-name">{{ lb.username }}{% if lb.username==u.username %} <span style="font-size:11px;color:var(--green);">(bạn)</span>{% endif %}</div>
+    <div style="font-size:12px;color:var(--orange);">🔥 {{ lb.streak }}</div>
+    <div class="lb-xp">⚡ {{ lb.xp }} XP</div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- History Tab Content -->
+<div id="tab-history" style="display:none;" class="tab-content">
+  {% if recent_scores %}
+  <div style="margin-bottom:16px;">
+    <p style="color:var(--text2);font-size:13px;">Những trò chơi gần đây của bạn:</p>
+  </div>
+  <div class="t-wrap">
+  <table class="atable">
+    <thead><tr><th>Bộ từ</th><th>Game</th><th>Điểm</th><th>XP</th><th>Thời gian</th></tr></thead>
+    <tbody>
+    {% for s in recent_scores %}
+    <tr>
+      <td>{{ s.emoji or '📚' }} {{ s.dname or 'Tất cả' }}</td>
+      <td><span class="badge" style="background:var(--blue-lt);color:var(--blue-dk);">{{ mode_label(s.game) }}</span></td>
+      <td style="font-weight:800;color:var(--orange);">{{ s.score }}</td>
+      <td style="color:var(--purple);font-weight:700;">+{{ s.xp_earned }} XP</td>
+      <td style="font-size:11px;color:var(--text3);">{{ s.created_at[:16] }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="e-ico" style="font-size:64px;">📊</div>
+    <p style="font-size:16px;font-weight:700;margin:12px 0;">Chưa có lịch sử</p>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:16px;">Chơi game để xem lịch sử điểm của bạn!</p>
+    <a href="/games" class="btn btn-p">🎮 Chơi game ngay</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+const urlLang=new URLSearchParams(location.search).get('lang');
+if(urlLang){document.querySelector('[onclick*="explore"]').click();}
+
+function showTab(id,btn){
+  ['lib','explore','leaderboard','history'].forEach(t=>document.getElementById('tab-'+t).style.display='none');
+  document.getElementById('tab-'+id).style.display='';
+  document.querySelectorAll('#main-tabs .tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function filterLang(lang,btn){
+  document.querySelectorAll('#explore-grid .deck-card').forEach(c=>{
+    c.style.display=(lang==='all'||c.dataset.lang===lang)?'':'none';
+  });
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+async function addDeck(id,btn){
+  const r=await fetch(`/api/add_deck/${id}`,{method:'POST'});
+  const d=await r.json();
+  if(d.ok){btn.textContent='✓ Đã thêm';btn.className='btn btn-ghost btn-sm';btn.onclick=()=>rmDeck(id,btn);toast('✅ Đã thêm vào thư viện!');}
+}
+async function rmDeck(id,btn){
+  await fetch(`/api/remove_deck/${id}`,{method:'POST'});
+  btn.textContent='+ Thêm';btn.className='btn btn-g btn-sm';btn.onclick=()=>addDeck(id,btn);
+  toast('Đã xoá khỏi thư viện','err');
+}
+if(urlLang){
+  setTimeout(()=>{filterLang(urlLang,document.querySelector(`[onclick*="filterLang('${urlLang}'"]`)||document.createElement('button'));},50);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Đăng nhập — LexiVault Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+<script>(function(){var t=localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+.auth-body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:linear-gradient(135deg,#0A0F1E 0%,#0D2137 50%,#0A0F1E 100%);}
+.auth-card{background:var(--surface);border-radius:24px;padding:36px;width:100%;max-width:400px;border:1px solid var(--border);}
+.auth-form input{width:100%;padding:12px 15px;border:1.5px solid var(--border);border-radius:10px;
+  font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);outline:none;transition:.2s;margin-bottom:11px;}
+.auth-form input:focus{border-color:var(--green);}
+.auth-footer{text-align:center;margin-top:14px;font-size:13px;color:var(--text2);}
+.auth-footer a{color:var(--blue);font-weight:700;text-decoration:none;}
+.feat-row{display:flex;gap:8px;justify-content:center;margin-bottom:22px;flex-wrap:wrap;}
+.feat{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);}
+.demo-box{background:var(--bg2);border-radius:10px;padding:12px 14px;margin-top:14px;border:1px solid var(--border);}
+</style>
+</head>
+<body class="auth-body">
+<div class="auth-card">
+  <div style="text-align:center;margin-bottom:6px;font-size:28px;font-weight:900;background:linear-gradient(135deg,#10B981,#3B82F6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🧬 LexiVault Pro</div>
+  <div style="text-align:center;color:var(--text2);font-size:13px;margin-bottom:18px;">Học từ vựng thông minh · Chơi game · Ghi nhớ lâu</div>
+  <div class="feat-row">
+    <span class="feat" style="display:inline-flex; align-items:center; gap:6px; margin-right:12px;">
+  <img src="/static/icons/loud.png" width="20">
+  <span>Phát âm</span>
+</span>
+
+<span class="feat" style="display:inline-flex; align-items:center; gap:6px; margin-right:12px;">
+  <img src="/static/icons/game.png" width="20">
+  <span>5 Games</span>
+</span>
+
+<span class="feat" style="display:inline-flex; align-items:center; gap:6px; margin-right:12px;">
+  <img src="/static/icons/down.png" width="20">
+  <span>Download</span>
+</span>
+
+<span class="feat" style="display:inline-flex; align-items:center; gap:6px;">
+  <img src="/static/icons/achieve.png" width="20">
+  <span>Leaderboard</span>
+</span>
+  </div>
+  {% if error %}<div class="alert alert-err">⚠️ {{ error }}</div>{% endif %}
+  {% with msgs=get_flashed_messages(with_categories=true) %}{% for c,m in msgs %}<div class="alert alert-{{ 'ok' if c=='success' else 'err' }}">{{ m }}</div>{% endfor %}{% endwith %}
+  <form method="POST" class="auth-form">
+    <input type="text" name="username" placeholder="Tên đăng nhập" required>
+    <input type="password" name="password" placeholder="Mật khẩu" required>
+    <button type="submit" class="btn btn-g btn-full btn-lg" style="font-size:15px;">Đăng nhập </button>
+  </form>
+  <div class="auth-footer">Chưa có tài khoản? <a href="/register">Đăng ký miễn phí</a></div>
+</div>
+</body></html>

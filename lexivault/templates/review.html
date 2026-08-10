@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+{% block title %}Ôn tập thông minh — LexiVault{% endblock %}
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="/static/js/sfx.js"></script>
+<style>
+/* ── HERO ── */
+.sr-hero{background:linear-gradient(135deg,#0A0F1E,#0D2137,#1a1040);border-radius:24px;padding:32px 28px;margin-bottom:24px;border:1px solid rgba(59,130,246,.2);position:relative;overflow:hidden;}
+.sr-hero::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.18),transparent 70%);pointer-events:none;}
+.sr-hero-inner{position:relative;z-index:1;display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.sr-hero-title{font-size:24px;font-weight:900;color:#fff;margin-bottom:4px;}
+.sr-hero-sub{color:rgba(255,255,255,.6);font-size:13px;margin-bottom:14px;}
+.sr-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.sr-pill{padding:5px 14px;border-radius:99px;font-size:13px;font-weight:700;backdrop-filter:blur(8px);}
+.sr-pill-due{background:rgba(239,68,68,.25);border:1px solid rgba(239,68,68,.4);color:#FCA5A5;}
+.sr-pill-up{background:rgba(59,130,246,.2);border:1px solid rgba(59,130,246,.3);color:#93C5FD;}
+.sr-pill-ok{background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.3);color:#6EE7B7;}
+
+/* ── FORECAST CHART ── */
+.forecast-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:24px;}
+
+/* ── INTERVAL DISTRIBUTION ── */
+.dist-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px;}
+.dist-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;}
+.dist-ico{font-size:20px;margin-bottom:4px;}
+.dist-val{font-size:22px;font-weight:900;}
+.dist-lbl{font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+
+/* ── REVIEW CARD ── */
+.review-wrap{max-width:620px;margin:0 auto;}
+.prog-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--text2);}
+.review-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:36px 32px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;transition:transform .3s,opacity .3s;}
+.review-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#3B82F6,#8B5CF6,#EC4899);}
+.rc-deck{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+.rc-word{font-size:44px;font-weight:900;margin-bottom:8px;cursor:pointer;}
+.rc-pron{font-size:16px;color:var(--blue);font-style:italic;margin-bottom:8px;}
+.rc-pos{display:inline-flex;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;background:var(--purple);color:#fff;margin-bottom:16px;}
+.rc-speak{font-size:26px;cursor:pointer;padding:6px;border-radius:10px;border:none;background:none;transition:.15s;color:var(--blue);}
+.rc-speak:hover{background:var(--blue-lt);transform:scale(1.1);}
+.rc-hint{font-size:13px;color:var(--text3);margin-top:12px;font-style:italic;}
+.rc-answer-area{background:var(--bg2);border-radius:16px;padding:20px;margin-top:16px;text-align:left;border:1px solid var(--border);}
+.rc-meaning{font-size:20px;font-weight:800;margin-bottom:10px;color:var(--text);}
+.rc-example{font-size:14px;color:var(--text2);font-style:italic;margin-bottom:6px;}
+.rc-exvn{font-size:13px;color:var(--text3);}
+.rc-syn{font-size:12px;color:var(--blue);margin-top:8px;}
+.rc-meta{display:flex;gap:10px;margin-top:10px;font-size:11px;color:var(--text3);flex-wrap:wrap;}
+.rc-meta span{background:var(--bg3);padding:2px 8px;border-radius:99px;}
+
+/* ── QUALITY BUTTONS ── */
+.quality-section{margin-top:4px;}
+.quality-label{font-size:12px;font-weight:700;color:var(--text2);text-align:center;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+.quality-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.q-btn{padding:14px 10px;border-radius:14px;border:2px solid;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer;transition:.15s;text-align:center;line-height:1.3;}
+.q-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15);}
+.q-btn:active{transform:translateY(1px);}
+.q-btn.q0{background:#1a0000;border-color:#7F1D1D;color:#FCA5A5;}
+.q-btn.q1{background:#1f0a00;border-color:#92400E;color:#FCD34D;}
+.q-btn.q2{background:#1a1500;border-color:#854D0E;color:#FDE68A;}
+.q-btn.q3{background:#002215;border-color:#065F46;color:#6EE7B7;}
+.q-btn.q4{background:#001a33;border-color:#1D4ED8;color:#93C5FD;}
+.q-btn.q5{background:#1a0040;border-color:#5B21B6;color:#C4B5FD;}
+.q-btn .q-interval{display:block;font-size:10px;font-weight:600;opacity:.7;margin-top:2px;}
+
+/* ── FLIP ANIMATION ── */
+.card-scene{perspective:1000px;}
+.card-flipper{width:100%;transition:transform .5s cubic-bezier(.4,0,.2,1);transform-style:preserve-3d;position:relative;}
+.card-flipper.flipped{transform:rotateY(180deg);}
+.card-front,.card-back{backface-visibility:hidden;}
+.card-back{transform:rotateY(180deg);position:absolute;inset:0;}
+
+/* ── SLIDE OUT ANIMATION ── */
+@keyframes slideLeft{to{transform:translateX(-120%);opacity:0;}}
+@keyframes slideRight{to{transform:translateX(120%);opacity:0;}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+.slide-left{animation:slideLeft .3s ease forwards;}
+.slide-right{animation:slideRight .3s ease forwards;}
+.fade-in-up{animation:fadeInUp .4s ease;}
+
+/* ── DONE STATE ── */
+.done-screen{text-align:center;padding:60px 20px;max-width:480px;margin:0 auto;}
+.done-ico{font-size:72px;margin-bottom:14px;animation:pop .5s cubic-bezier(.36,.07,.19,.97);}
+@keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.done-xp{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;padding:12px 24px;border-radius:99px;font-size:18px;font-weight:800;margin:16px 0;}
+
+/* ── SWIPE AREA (mobile) ── */
+.swipe-label{display:none;text-align:center;font-size:12px;color:var(--text3);margin-bottom:10px;}
+@media(max-width:768px){
+  .swipe-label{display:block;}
+  .rc-word{font-size:32px;}
+  .quality-btns{grid-template-columns:repeat(2,1fr);}
+  .dist-row{grid-template-columns:repeat(3,1fr);}
+  .review-card{padding:24px 18px;}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="sr-hero">
+  <div class="sr-hero-inner">
+    <div style="font-size:52px;flex-shrink:0;">🔄</div>
+    <div style="flex:1;">
+      <div class="sr-hero-title">Spaced Repetition System (SM-2)</div>
+      <div class="sr-hero-sub">Ôn tập đúng lúc bạn sắp quên · Tối ưu hoá trí nhớ dài hạn</div>
+      <div class="sr-pills" style="margin-top:12px;">
+        <div class="sr-pill sr-pill-due">🔴 {{ total_due }} từ cần ôn hôm nay</div>
+        <div class="sr-pill sr-pill-up">🔵 {{ upcoming }} từ trong lịch</div>
+      </div>
+    </div>
+    <div style="flex-shrink:0;">
+      <a href="/chat" class="btn btn-p btn-lg" style="white-space:nowrap;">💬 Hỏi AI</a>
+    </div>
+  </div>
+</div>
+
+{% if total_due == 0 %}
+<!-- Nothing due -->
+<div style="text-align:center;padding:60px 20px;max-width:500px;margin:0 auto;">
+  <div style="font-size:72px;margin-bottom:16px;">🎉</div>
+  <div style="font-size:24px;font-weight:900;margin-bottom:8px;">Tuyệt vời!</div>
+  <div style="color:var(--text2);font-size:15px;margin-bottom:28px;">Bạn đã ôn hết {{ upcoming }} từ rồi. Quay lại sau khi có từ mới đến hạn!</div>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+    <a href="/games" class="btn btn-p btn-lg">🎮 Chơi game</a>
+    <a href="/" class="btn btn-ghost btn-lg">← Trang chủ</a>
+  </div>
+</div>
+{% else %}
+
+<!-- Forecast chart -->
+<div class="forecast-card section-wrapper">
+  <div style="font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+    <span>📅</span>
+    <span>Lịch ôn tập 7 ngày tới</span>
+  </div>
+  <div style="height:140px;"><canvas id="forecastChart"></canvas></div>
+</div>
+
+<!-- Interval distribution -->
+<div class="section-wrapper">
+  <div style="font-size:14px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+    <span>📊</span>
+    <span>Phân bố mức độ ôn tập</span>
+  </div>
+  <div class="dist-row">
+    <div class="dist-card"><div class="dist-ico">🆕</div><div class="dist-val">{{ intervals.new_w or 0 }}</div><div class="dist-lbl">Mới</div></div>
+    <div class="dist-card"><div class="dist-ico">🌱</div><div class="dist-val">{{ intervals.day3 or 0 }}</div><div class="dist-lbl">1-3 ngày</div></div>
+    <div class="dist-card"><div class="dist-ico">📖</div><div class="dist-val">{{ intervals.week or 0 }}</div><div class="dist-lbl">4-7 ngày</div></div>
+    <div class="dist-card"><div class="dist-ico">🌿</div><div class="dist-val">{{ intervals.weeks3 or 0 }}</div><div class="dist-lbl">8-21 ngày</div></div>
+    <div class="dist-card"><div class="dist-ico">🌳</div><div class="dist-val">{{ intervals.long_term or 0 }}</div><div class="dist-lbl">&gt;21 ngày</div></div>
+  </div>
+</div>
+
+<!-- Review area -->
+<div class="review-wrap section-wrapper">
+  <div style="margin-bottom:16px;">
+    <div style="font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+      <span>🎯</span>
+      <span>Bắt đầu ôn tập</span>
+    </div>
+  </div>
+  <div id="review-screen">
+    <div class="prog-info">
+      <span id="prog-txt">0 / {{ words|length }} từ</span>
+      <span id="score-txt" style="color:var(--green);font-weight:800;">⚡ 0 XP</span>
+    </div>
+    <div class="study-bar" style="margin-bottom:16px;height:6px;">
+      <div class="study-fill" id="prog-fill" style="width:0%;"></div>
+    </div>
+    <div class="swipe-label">← Không biết &nbsp;|&nbsp; Nhấn thẻ để lật &nbsp;|&nbsp; Biết rồi →</div>
+
+    <div class="card-scene" id="card-area">
+      <div class="review-card fade-in-up" id="review-card" onclick="revealAnswer()">
+        <!-- Front -->
+        <div id="card-front">
+          <div class="rc-deck" id="rc-deck"></div>
+          <div class="rc-word" id="rc-word"></div>
+          <div class="rc-pron" id="rc-pron"></div>
+          <div id="rc-pos-wrap"></div>
+          <button class="rc-speak" onclick="event.stopPropagation();doSpeak()" id="rc-speak-btn">🔊</button>
+          <div class="rc-hint">Nhấn vào thẻ để xem nghĩa</div>
+          <div class="rc-meta" id="rc-meta-front"></div>
+        </div>
+        <!-- Answer (hidden initially) -->
+        <div class="rc-answer-area" id="card-answer" style="display:none;">
+          <div class="rc-meaning" id="rc-meaning"></div>
+          <div class="rc-example" id="rc-example"></div>
+          <div class="rc-exvn" id="rc-exvn"></div>
+          <div class="rc-syn" id="rc-syn"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quality buttons (show after reveal) -->
+    <div id="quality-area" style="display:none;">
+      <div class="quality-section">
+        <div class="quality-label">Bạn nhớ từ này như thế nào?</div>
+        <div class="quality-btns">
+          <button class="q-btn q0" onclick="answer(0)">😵 Không nhớ<span class="q-interval" id="qi0">→ 1 ngày</span></button>
+          <button class="q-btn q1" onclick="answer(1)">😕 Nhầm lẫn<span class="q-interval" id="qi1">→ 1 ngày</span></button>
+          <button class="q-btn q2" onclick="answer(2)">🤔 Khó nhớ<span class="q-interval" id="qi2">→ 1 ngày</span></button>
+          <button class="q-btn q3" onclick="answer(3)">😊 Nhớ được<span class="q-interval" id="qi3">→ 1 ngày</span></button>
+          <button class="q-btn q4" onclick="answer(4)">😄 Nhớ tốt<span class="q-interval" id="qi4">→ 6 ngày</span></button>
+          <button class="q-btn q5" onclick="answer(5)">🤩 Thuộc lòng!<span class="q-interval" id="qi5">→ 6 ngày</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done screen -->
+  <div id="done-screen" class="done-screen" style="display:none;">
+    <div class="done-ico" id="done-ico">🏆</div>
+    <div style="font-size:26px;font-weight:900;margin-bottom:6px;">Phiên ôn tập xong!</div>
+    <div style="color:var(--text2);font-size:14px;margin-bottom:8px;" id="done-sub"></div>
+    <div class="done-xp" id="done-xp">⚡ +0 XP</div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
+      <button onclick="location.reload()" class="btn btn-b btn-lg">🔄 Ôn thêm</button>
+      <a href="/profile" class="btn btn-g btn-lg">📊 Xem hồ sơ</a>
+      <a href="/games" class="btn btn-ghost btn-lg">🎮 Chơi game</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+const WORDS = {{ words|tojson }};
+let idx = 0, revealed = false, totalXP = 0, correct = 0;
+const LANG_MAP = {};
+
+function doSpeak() {
+  if(!WORDS[idx]) return;
+  const lang = WORDS[idx].language;
+  speak(WORDS[idx].word, lang || 'en');
+}
+
+function speak(word, lang) {
+  if (window.LVPronunciation) return window.LVPronunciation.play(word, {language: lang, rate: 0.82});
+  if(!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = lang==='ja'?'ja-JP':lang==='ko'?'ko-KR':'en-US';
+  u.rate = 0.82; window.speechSynthesis.speak(u);
+}
+
+// Calculate preview intervals for quality buttons
+function calcIntervals(ef, interval, reps) {
+  const labels = ['qi0','qi1','qi2','qi3','qi4','qi5'];
+  [0,1,2,3,4,5].forEach(q => {
+    let newInterval;
+    if(q < 3) { newInterval = 1; }
+    else {
+      if(reps===0) newInterval=1;
+      else if(reps===1) newInterval=6;
+      else newInterval=Math.round(interval*(ef||2.5));
+    }
+    const lbl = newInterval===1?'1 ngày':newInterval<=7?newInterval+' ngày':Math.ceil(newInterval/7)+' tuần';
+    document.getElementById(labels[q]).textContent = '→ ' + lbl;
+  });
+}
+
+function loadCard() {
+  if(idx >= WORDS.length) { finishSession(); return; }
+  revealed = false;
+  const w = WORDS[idx];
+  document.getElementById('rc-deck').textContent = (w.deck_emoji||'📚') + ' ' + (w.deck_name||'');
+  document.getElementById('rc-word').textContent = w.word;
+  document.getElementById('rc-pron').textContent = w.pronunciation ? `[${w.pronunciation}]` : '';
+  const posWrap = document.getElementById('rc-pos-wrap');
+  posWrap.innerHTML = w.part_of_speech ? `<span class="rc-pos">${w.part_of_speech}</span>` : '';
+  document.getElementById('rc-meaning').textContent = w.meaning;
+  document.getElementById('rc-example').textContent = w.example ? `"${w.example}"` : '';
+  document.getElementById('rc-exvn').textContent = w.example_vn ? `🇻🇳 ${w.example_vn}` : '';
+  document.getElementById('rc-syn').textContent = w.synonyms ? `≈ ${w.synonyms}` : '';
+
+  // Meta: current SR stats
+  const meta = document.getElementById('rc-meta-front');
+  const ef = w.ease_factor || 2.5;
+  const si = w.sr_interval || 0;
+  const reps = w.repetitions || 0;
+  meta.innerHTML = `<span>EF: ${ef}</span><span>Interval: ${si} ngày</span><span>Lần ôn: ${reps}</span>`;
+
+  // Update quality interval previews
+  calcIntervals(ef, si, reps);
+
+  // Progress
+  document.getElementById('prog-txt').textContent = `${idx} / ${WORDS.length} từ`;
+  document.getElementById('prog-fill').style.width = (idx/WORDS.length*100)+'%';
+  document.getElementById('score-txt').textContent = `⚡ ${totalXP} XP`;
+
+  // Hide answer
+  document.getElementById('card-answer').style.display = 'none';
+  document.getElementById('quality-area').style.display = 'none';
+  document.getElementById('review-card').onclick = revealAnswer;
+
+  // Auto speak
+  setTimeout(() => doSpeak(), 350);
+
+  // Touch/swipe support
+  setupSwipe();
+}
+
+function revealAnswer() {
+  if(revealed) return;
+  revealed = true;
+  document.getElementById('card-answer').style.display = 'block';
+  document.getElementById('quality-area').style.display = 'block';
+  document.getElementById('review-card').onclick = null;
+  SFX.play('flip');
+  document.getElementById('card-answer').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function answer(quality) {
+  const w = WORDS[idx];
+  const direction = quality >= 3 ? 'slide-right' : 'slide-left';
+
+  // Animate card out
+  const card = document.getElementById('review-card');
+  card.classList.add(direction);
+
+  // Play sound
+  if(quality >= 4) SFX.play('correct');
+  else if(quality >= 3) SFX.play('match');
+  else SFX.play('wrong');
+
+  if(quality >= 3) correct++;
+
+  try {
+    const r = await fetch('/api/sr_review', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({word_id: w.word_id, quality})
+    });
+    const d = await r.json();
+    if(d.ok) {
+      totalXP += d.xp_earned || 0;
+      if(d.new_achievements?.length) {
+        d.new_achievements.forEach((a,i) =>
+          setTimeout(() => showGlobalAch(a.icon, a.name), i*2000));
+      }
+    }
+  } catch(e) { console.warn('API error', e); }
+
+  setTimeout(() => {
+    card.classList.remove(direction);
+    idx++;
+    card.classList.add('fade-in-up');
+    loadCard();
+    setTimeout(() => card.classList.remove('fade-in-up'), 400);
+  }, 280);
+}
+
+function finishSession() {
+  document.getElementById('prog-fill').style.width = '100%';
+  document.getElementById('review-screen').style.display = 'none';
+  const done = document.getElementById('done-screen');
+  done.style.display = 'block';
+  const acc = WORDS.length ? Math.round(correct/WORDS.length*100) : 0;
+  document.getElementById('done-ico').textContent = acc>=80?'🏆':acc>=50?'⭐':'💪';
+  document.getElementById('done-sub').textContent = `${WORDS.length} từ · ${correct} nhớ đúng · ${acc}% chính xác`;
+  document.getElementById('done-xp').textContent = `⚡ +${totalXP} XP`;
+  if(acc === 100) SFX.play('perfect');
+  else if(acc >= 60) SFX.play('correct');
+}
+
+// Swipe support for mobile
+let touchStartX = 0;
+function setupSwipe() {
+  const card = document.getElementById('review-card');
+  card.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX, {passive:true});
+  card.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if(!revealed) { if(Math.abs(dx) > 40) revealAnswer(); return; }
+    if(dx > 70) answer(4);
+    else if(dx < -70) answer(1);
+  }, {passive:true});
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if(!revealed) { if(e.code==='Space'){e.preventDefault();revealAnswer();} return; }
+  const map = {'Digit1':0,'Digit2':1,'Digit3':2,'Digit4':3,'Digit5':4,'Digit6':5,
+               'ArrowLeft':1,'ArrowRight':4};
+  if(map[e.code]!==undefined) answer(map[e.code]);
+  if(e.code==='KeyS') doSpeak();
+});
+
+// Forecast chart
+fetch('/api/sr_stats').then(r=>r.json()).then(d=>{
+  const ctx = document.getElementById('forecastChart');
+  if(!ctx || !d.forecast) return;
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const txC = isDark?'#94A3B8':'#475569';
+  const gdC = isDark?'#1F2937':'#E2E8F0';
+  new Chart(ctx.getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:d.forecast.map(f=>{ const dt=new Date(f.date); return dt.toLocaleDateString('vi',{weekday:'short',day:'numeric'}); }),
+      datasets:[{
+        label:'Từ cần ôn',data:d.forecast.map(f=>f.count),
+        backgroundColor:d.forecast.map((_,i)=>i===0?'rgba(239,68,68,.7)':'rgba(59,130,246,.5)'),
+        borderRadius:8,borderSkipped:false,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:isDark?'#1F2937':'#fff',titleColor:txC,bodyColor:txC,
+        borderColor:gdC,borderWidth:1,padding:10,cornerRadius:10,
+        callbacks:{label:c=>`${c.parsed.y} từ`}
+      }},
+      scales:{
+        x:{grid:{display:false},ticks:{color:txC,font:{size:11,weight:'700'}}},
+        y:{grid:{color:gdC},ticks:{color:txC,font:{size:10},stepSize:1},beginAtZero:true},
+      }
+    }
+  });
+}).catch(()=>{});
+
+// Init
+if(WORDS.length > 0) loadCard();
+</script>
+{% endblock %}

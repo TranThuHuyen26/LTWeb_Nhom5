@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}Admin - LexiVault{% endblock %}
+{% block content %}
+<section class="admin-hero">
+  <div>
+    <div class="admin-kicker">Control Center</div>
+    <h1 class="admin-title">
+      <span class="admin-title-icon"><i class="fa-solid fa-shield-halved"></i></span>
+      Admin Dashboard
+    </h1>
+    <p class="admin-subtitle">Quản lý bộ từ, theo dõi người dùng và kiểm soát dữ liệu trên một giao diện trực quan, gọn gàng hơn.</p>
+  </div>
+  <div class="admin-hero-meta">
+    <div class="admin-meta-card">
+      <span class="admin-meta-label">Tổng bộ từ</span>
+      <strong>{{ decks|length }}</strong>
+    </div>
+    <div class="admin-meta-card">
+      <span class="admin-meta-label">Người dùng</span>
+      <strong>{{ users|length }}</strong>
+    </div>
+  </div>
+</section>
+
+<div class="stats-strip admin-stats-strip">
+  <div class="stat-box admin-stat-box">
+    <div class="stat-ico admin-stat-ico users"><i class="fa-solid fa-users"></i></div>
+    <div class="stat-val">{{ users|length }}</div>
+    <div class="stat-lbl">Users</div>
+  </div>
+  <div class="stat-box admin-stat-box">
+    <div class="stat-ico admin-stat-ico decks"><i class="fa-solid fa-layer-group"></i></div>
+    <div class="stat-val">{{ decks|length }}</div>
+    <div class="stat-lbl">Bộ từ</div>
+  </div>
+  <div class="stat-box admin-stat-box">
+    <div class="stat-ico admin-stat-ico games"><i class="fa-solid fa-chart-column"></i></div>
+    <div class="stat-val">{{ total_games }}</div>
+    <div class="stat-lbl">Game Sessions</div>
+  </div>
+  <div class="stat-box admin-stat-box">
+    <div class="stat-ico admin-stat-ico words"><i class="fa-solid fa-book-open"></i></div>
+    <div class="stat-val">{{ decks|sum(attribute='wc') }}</div>
+    <div class="stat-lbl">Tổng từ</div>
+  </div>
+</div>
+
+<section class="admin-panel">
+  <div class="admin-section-head">
+    <div>
+      <div class="sec-title"><i class="fa-solid fa-folder-tree"></i> Quản lý bộ từ</div>
+      <p class="admin-section-sub">Tạo bộ từ mới với biểu tượng gọn gàng, màu sắc rõ ràng và thông tin đầy đủ.</p>
+    </div>
+  </div>
+
+  <div class="card admin-form-card">
+    <div class="card-body">
+      <div class="admin-form-head">
+        <div>
+          <h2>Thêm bộ từ mới</h2>
+          <p>Lựa chọn biểu tượng chuyên nghiệp hơn thay cho các emoji tự do.</p>
+        </div>
+      </div>
+
+      <div class="frow admin-form-grid">
+        <div class="fgrp">
+          <label for="d-name">Tên *</label>
+          <input type="text" id="d-name" placeholder="VD: IELTS Advanced">
+        </div>
+        <div class="fgrp">
+          <label for="d-lang">Ngôn ngữ</label>
+          <select id="d-lang">
+            <option value="en">English</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+          </select>
+        </div>
+        <div class="fgrp">
+          <label for="d-level">Cấp độ</label>
+          <select id="d-level">
+            <option value="beginner">Cơ bản</option>
+            <option value="intermediate">Trung cấp</option>
+            <option value="advanced">Nâng cao</option>
+          </select>
+        </div>
+        <div class="fgrp">
+          <label for="d-emoji">Biểu tượng</label>
+          <select id="d-emoji">
+            <option value="📘">📘 Academic</option>
+            <option value="📗">📗 General</option>
+            <option value="📙">📙 Topic</option>
+            <option value="🗂️">🗂️ Category</option>
+            <option value="🎓">🎓 Exam Prep</option>
+            <option value="🧩">🧩 Practice</option>
+          </select>
+        </div>
+        <div class="fgrp">
+          <label for="d-color">Mẫu nhận</label>
+          <input type="color" id="d-color" value="#10B981">
+        </div>
+      </div>
+
+      <div class="fgrp">
+        <label for="d-desc">Mô tả</label>
+        <input type="text" id="d-desc" placeholder="Mô tả ngắn cho bộ từ này...">
+      </div>
+
+      <div class="admin-form-actions">
+        <button class="btn btn-g" onclick="addDeck()">
+          <i class="fa-solid fa-plus"></i>
+          Thêm bộ từ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="t-wrap admin-table-wrap">
+    <table class="atable admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Tên bộ từ</th>
+          <th>Ngôn ngữ</th>
+          <th>Cấp độ</th>
+          <th>Số từ</th>
+          <th>Lượt tải</th>
+          <th class="admin-col-actions">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in decks %}
+        <tr id="dr-{{ d.id }}">
+          <td>{{ d.id }}</td>
+          <td>
+            <div class="admin-deck-cell">
+              <span class="admin-deck-emoji">{{ d.emoji }}</span>
+              <div>
+                <strong>{{ d.name }}</strong>
+              </div>
+            </div>
+          </td>
+          <td><span class="tag tag-{{ d.language }}">{{ lang_label(d.language) }}</span></td>
+          <td><span class="tag tag-{{ d.level[:3] }}">{{ level_label(d.level) }}</span></td>
+          <td>{{ d.wc }}</td>
+          <td><span class="admin-download-chip"><i class="fa-solid fa-download"></i> {{ d.download_count }}</span></td>
+          <td class="action-btns admin-actions-cell">
+            <a href="/admin/words/{{ d.id }}" class="btn-xs info admin-action-btn">
+              <i class="fa-solid fa-book"></i>
+              Từ vựng
+            </a>
+            <button class="btn-xs danger admin-icon-btn" onclick="delDeck({{ d.id }})" aria-label="Xoa bo tu">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="admin-panel">
+  <div class="admin-section-head">
+    <div>
+      <div class="sec-title"><i class="fa-solid fa-user-gear"></i> Users</div>
+      <p class="admin-section-sub">Theo dõi thông tin tài khoản, vai trò và mức độ hoạt động của từng người dùng.</p>
+    </div>
+  </div>
+
+  <div class="t-wrap admin-table-wrap">
+    <table class="atable admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>User</th>
+          <th>Role</th>
+          <th>XP</th>
+          <th>Streak</th>
+          <th>Ngày đăng ký</th>
+          <th class="admin-col-actions">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr id="ur-{{ user.id }}">
+          <td>{{ user.id }}</td>
+          <td>
+            <div class="admin-user-cell">
+              <span class="admin-user-avatar">{{ user.avatar }}</span>
+              <strong>{{ user.username }}</strong>
+            </div>
+          </td>
+          <td><span class="badge badge-{{ user.role }}">{{ user.role }}</span></td>
+          <td><span class="admin-info-chip xp"><i class="fa-solid fa-bolt"></i> {{ user.xp }}</span></td>
+          <td><span class="admin-info-chip streak"><i class="fa-solid fa-fire"></i> {{ user.streak }}</span></td>
+          <td class="admin-date">{{ user.created_at[:10] if user.created_at else '-' }}</td>
+          <td class="admin-actions-cell">
+            <span class="admin-status-chip {{ 'active' if user.is_active else 'inactive' }}" id="user-status-{{ user.id }}">
+              <i class="fa-solid {{ 'fa-circle-check' if user.is_active else 'fa-lock' }}"></i>
+              {{ 'Đang hoạt động' if user.is_active else 'Đã khóa' }}
+            </span>
+            {% if user.id != u.id %}
+            <button class="btn-xs {{ 'warn' if user.is_active else 'info' }} admin-action-btn" id="user-toggle-{{ user.id }}" onclick="toggleUser({{ user.id }})">
+              <i class="fa-solid {{ 'fa-user-lock' if user.is_active else 'fa-user-check' }}"></i>
+              {{ 'Khóa tài khoản' if user.is_active else 'Mở khóa' }}
+            </button>
+            {% else %}
+            <span class="admin-self-note">Tài khoản hiện tại</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+async function addDeck(){
+  const name=document.getElementById('d-name').value.trim();
+  if(!name){alert('Nhap ten bo tu!');return;}
+  const r=await fetch('/admin/decks/add',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name,lang:document.getElementById('d-lang').value,
+      level:document.getElementById('d-level').value,emoji:document.getElementById('d-emoji').value,
+      color:document.getElementById('d-color').value,desc:document.getElementById('d-desc').value})});
+  if((await r.json()).ok)location.reload();
+}
+async function delDeck(id){
+  if(!confirm('Xoa bo tu nay?'))return;
+  const r=await fetch(`/admin/decks/${id}/delete`,{method:'POST'});
+  if((await r.json()).ok)document.getElementById('dr-'+id).remove();
+}
+async function toggleUser(id){
+  const btn=document.getElementById('user-toggle-'+id);
+  const status=document.getElementById('user-status-'+id);
+  if(btn)btn.disabled=true;
+  const r=await fetch(`/admin/users/${id}/toggle`,{method:'POST'});
+  const data=await r.json();
+  if(!r.ok || !data.ok){
+    alert('Khong the cap nhat tai khoan nay.');
+    if(btn)btn.disabled=false;
+    return;
+  }
+  const active=Boolean(data.is_active);
+  if(status){
+    status.className=`admin-status-chip ${active ? 'active' : 'inactive'}`;
+    status.innerHTML=`<i class="fa-solid ${active ? 'fa-circle-check' : 'fa-lock'}"></i> ${active ? 'Đang hoạt động' : 'Đã khóa'}`;
+  }
+  if(btn){
+    btn.className=`btn-xs ${active ? 'warn' : 'info'} admin-action-btn`;
+    btn.innerHTML=`<i class="fa-solid ${active ? 'fa-user-lock' : 'fa-user-check'}"></i> ${active ? 'Khóa tài khoản' : 'Mở khóa'}`;
+    btn.disabled=false;
+  }
+}
+</script>
+{% endblock %}

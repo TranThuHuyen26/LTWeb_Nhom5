@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Trò chơi — LexiVault Pro{% endblock %}
+{% block content %}
+<!-- Header Section -->
+<div style="margin-bottom:32px;">
+  <div style="font-size:28px;font-weight:900;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+    <img src="/static/icons/game.png" width="40" style="margin-top:2px;">
+    <span>Trung tâm Trò chơi</span>
+  </div>
+  <div style="color:var(--text2);font-size:14px;">Chọn bộ từ và chế độ chơi yêu thích của bạn</div>
+</div>
+
+{% if not my_decks %}
+<div class="alert alert-err" style="margin-bottom:24px;">🚨 Bạn chưa có bộ từ nào! <a href="/?tab=explore" style="color:var(--blue);font-weight:700;">Thêm bộ từ ngay →</a></div>
+{% endif %}
+
+<!-- Deck Selection Section -->
+<div class="section-wrapper" style="margin-bottom:32px;">
+  <div style="margin-bottom:14px;">
+    <label style="font-size:13px;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:8px;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">
+      <img src="/static/icons/vocab.png" width="24">
+      <span>Bước 1: Chọn bộ từ</span>
+    </label>
+  </div>
+  <select id="deck-sel" onchange="updateGameLinks()" style="padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);outline:none;width:100%;max-width:100%;">
+    {% for d in my_decks %}
+    <option value="{{ d.id }}">{{ d.emoji }} {{ d.name }} ({{ d.word_count }} từ)</option>
+    {% endfor %}
+  </select>
+</div>
+
+<!-- Game Selection Section -->
+<div class="section-wrapper" style="margin-bottom:32px;">
+  <div style="margin-bottom:14px;">
+    <label style="font-size:13px;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.5px;">
+      <span>🎮</span>
+      <span>Bước 2: Chọn trò chơi</span>
+    </label>
+  </div>
+  <!-- Game cards -->
+  <div class="game-grid" id="game-grid">
+    <a class="game-card game-link" data-game="flashcard" href="#" style="background:linear-gradient(135deg,#10B981,#06B6D4);">
+      <div class="game-ico">🃏</div>
+      <div class="game-name">Flashcard</div>
+      <div class="game-desc">Lật thẻ học từ · ghi nhớ nghĩa · Space để lật</div>
+      <span class="game-badge">Classic</span>
+    </a>
+    <a class="game-card game-link" data-game="quiz" href="#" style="background:linear-gradient(135deg,#3B82F6,#8B5CF6);">
+      <div class="game-ico">🧠</div>
+      <div class="game-name">Quiz Trắc nghiệm</div>
+      <div class="game-desc">4 lựa chọn · phân tích điểm yếu · giải thích đáp án</div>
+      <span class="game-badge">Popular</span>
+    </a>
+    <a class="game-card game-link" data-game="typing" href="#" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);">
+      <div class="game-ico">⌨️</div>
+      <div class="game-name">Typing Challenge</div>
+      <div class="game-desc">Gõ đúng từ · gợi ý từng chữ cái · luyện chính tả</div>
+      <span class="game-badge">Hard</span>
+    </a>
+    <a class="game-card game-link" data-game="scramble" href="#" style="background:linear-gradient(135deg,#F59E0B,#EF4444);">
+      <div class="game-ico">🔀</div>
+      <div class="game-name">Word Scramble</div>
+      <div class="game-desc">Sắp xếp lại các chữ cái để tạo thành từ đúng</div>
+      <span class="game-badge">Fun</span>
+    </a>
+    <a class="game-card game-link" data-game="speedmatch" href="#" style="background:linear-gradient(135deg,#06B6D4,#10B981);">
+      <div class="game-ico">⚡</div>
+      <div class="game-name">Speed Match</div>
+      <div class="game-desc">Phán xét nhanh: từ và nghĩa có khớp không? · 60 giây</div>
+      <span class="game-badge">Fast</span>
+    </a>
+    <a class="game-card game-link" data-game="memorypairs" href="#" style="background:linear-gradient(135deg,#EC4899,#8B5CF6);">
+      <div class="game-ico">🧩</div>
+      <div class="game-name">Memory Pairs</div>
+      <div class="game-desc">Lật thẻ tìm cặp từ — nghĩa tương ứng · rèn trí nhớ</div>
+      <span class="game-badge">Brain</span>
+    </a>
+    <a class="game-card game-link" data-game="wordbomb" href="#" style="background:linear-gradient(135deg,#EF4444,#F59E0B);">
+      <div class="game-ico">💣</div>
+      <div class="game-name">Word Bomb</div>
+      <div class="game-desc">Trả lời trước khi bom nổ! · áp lực · hồi hộp</div>
+      <span class="game-badge">🔥 Hot</span>
+    </a>
+  </div>
+</div>
+
+<!-- Top scores -->
+{% if top_scores %}
+<div class="section-wrapper">
+  <div class="sec-title" style="margin-bottom:20px;">🏅 Điểm cao nhất</div>
+  <div class="t-wrap">
+  <table class="atable">
+    <thead><tr><th>#</th><th>Người chơi</th><th>Game</th><th>Bộ từ</th><th>Điểm</th></tr></thead>
+    <tbody>
+    {% for s in top_scores[:10] %}
+    <tr>
+      <td style="font-weight:800;color:var(--orange);">{{ loop.index }}</td>
+      <td>{{ s.avatar }} <strong>{{ s.username }}</strong></td>
+      <td><span class="badge" style="background:var(--blue-lt);color:var(--blue-dk);">{{ mode_label(s.game) }}</span></td>
+      <td style="font-size:12px;color:var(--text2);">{{ s.dname or '—' }}</td>
+      <td style="font-weight:900;color:var(--green);font-size:16px;">{{ s.score }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<script>
+function updateGameLinks(){
+  const did = document.getElementById('deck-sel').value;
+  document.querySelectorAll('.game-link').forEach(a=>{
+    a.href = `/game/${a.dataset.game}/${did}`;
+  });
+}
+updateGameLinks();
+document.querySelectorAll('.game-link').forEach(a=>{
+  a.addEventListener('click',e=>{
+    if(!document.getElementById('deck-sel').value){e.preventDefault();toast('Hãy chọn bộ từ trước!','err');}
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Typing Challenge — LexiVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+<script src="/static/js/study.js"></script>
+<script src="/static/js/sfx.js"></script>
+<script>(function(){var t=localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+<div class="study-nav">
+  <a href="/deck/{{ d.id }}" class="study-x">✕</a>
+  <div class="study-bar"><div class="study-fill" id="prog" style="width:0%"></div></div>
+  <div id="ctr" style="font-size:13px;font-weight:700;color:var(--text2);"></div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="font-size:13px;font-weight:800;color:var(--purple);">⚡ <span id="live-score">0</span></div>
+    <button class="sfx-btn" id="sfx-tog">🔊</button>
+  <span id="ti" style="font-size:16px;cursor:pointer;" onclick="togT()">☀️</span>
+  </div>
+</div>
+<div class="study-wrap" id="main">
+  <div class="q-label">⌨️ Gõ từ tiếng Anh tương ứng</div>
+  <div class="q-big" id="q-mean" style="font-size:22px;"></div>
+  <div style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:6px;font-style:italic;" id="q-exvn"></div>
+  <div style="text-align:center;margin-bottom:16px;">
+    <button onclick="speak(words[idx].word,LANG)" class="speak-btn" style="font-size:22px;" title="Nghe gợi ý">🔊 Nghe</button>
+    <button onclick="showHint()" class="btn btn-ghost btn-sm" style="margin-left:8px;">💡 Gợi ý</button>
+    <div style="font-size:13px;color:var(--blue);font-style:italic;margin-top:6px;min-height:18px;" id="hint-txt"></div>
+  </div>
+  <div class="blanks" id="blanks"></div>
+  <input type="text" class="type-input" id="inp" placeholder="Gõ câu trả lời..."
+         autocomplete="off" autocorrect="off" spellcheck="false"
+         oninput="onInp()" onkeydown="onKey(event)">
+  <button class="btn btn-b btn-full btn-lg" onclick="check()">✓ Kiểm tra</button>
+</div>
+<div class="fb-bar" id="fb">
+  <div><div class="fb-title" id="fb-t"></div><div class="fb-sub" id="fb-s"></div></div>
+  <button class="btn btn-g" onclick="nextQ()">Tiếp →</button>
+</div>
+<div class="study-wrap result" id="res" style="display:none;">
+  <div class="result-ico" id="res-ico">🏆</div>
+  <div class="result-title">Typing hoàn thành!</div>
+  <div class="result-xp" id="res-xp">⚡ +0 XP</div>
+  <div class="result-stats">
+    <div class="rs"><div class="v" id="r-c">0</div><div class="l">✅ Đúng</div></div>
+    <div class="rs"><div class="v" id="r-w">0</div><div class="l">❌ Sai</div></div>
+    <div class="rs"><div class="v" id="r-a">0%</div><div class="l">🎯 Tỉ lệ</div></div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <button onclick="restart()" class="btn btn-p btn-lg">🔄 Làm lại</button>
+    <a href="/deck/{{ d.id }}" class="btn btn-ghost btn-lg">← Về bộ từ</a>
+    <a href="/game/scramble/{{ d.id }}" class="btn btn-o btn-lg">🔀 Scramble</a>
+  </div>
+</div>
+<script>
+const words=shuffle({{ words|tojson }});
+const DECK_ID={{ d.id }};const LANG='{{ d.language }}';
+let idx=0,correct=0,wrong=0,answered=false,t0=Date.now();
+applyT(localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
+
+function renderBlanks(word,typed=''){
+  const wrap=document.getElementById('blanks');wrap.innerHTML='';
+  [...word].forEach((ch,i)=>{
+    const s=document.createElement('div');
+    s.className='blank-ch'+(ch===' '?' space':'');
+    const tc=typed[i]||'';
+    s.textContent=ch===' '?' ':tc||'';
+    if(tc&&ch!==' ')s.style.color=tc.toLowerCase()===ch.toLowerCase()?'var(--green)':'var(--red)';
+    wrap.appendChild(s);
+  });
+}
+function load(){
+  if(idx>=words.length){finish();return;}
+  answered=false;
+  const w=words[idx];
+  document.getElementById('q-mean').textContent=w.meaning;
+  document.getElementById('q-exvn').textContent=w.example_vn||'';
+  document.getElementById('hint-txt').textContent='';
+  document.getElementById('inp').value='';document.getElementById('inp').className='type-input';
+  document.getElementById('inp').disabled=false;document.getElementById('inp').focus();
+  document.getElementById('ctr').textContent=`${idx+1}/${words.length}`;
+  document.getElementById('prog').style.width=`${idx/words.length*100}%`;
+  document.getElementById('live-score').textContent=correct*25;
+  document.getElementById('fb').className='fb-bar';
+  renderBlanks(w.word);
+}
+function onInp(){renderBlanks(words[idx].word,document.getElementById('inp').value);}
+function showHint(){
+  const w=words[idx];
+  document.getElementById('hint-txt').textContent=`Gợi ý: "${w.word[0].toUpperCase()}" · ${w.word.length} chữ cái${w.pronunciation?` · [${w.pronunciation}]`:''}`;
+}
+function onKey(e){if(e.key==='Enter'){e.preventDefault();if(answered)nextQ();else check();}}
+async function check(){
+  if(answered)return;answered=true;
+  const w=words[idx];
+  const typed=document.getElementById('inp').value.trim();
+  const ok=typed.toLowerCase()===w.word.toLowerCase();
+  document.getElementById('inp').className='type-input '+(ok?'ok':'ng');
+  document.getElementById('inp').disabled=true;
+  renderBlanks(w.word,w.word);
+  if(ok){correct++;SFX.play("correct");}else{wrong++;SFX.play("wrong");}
+  await fetch('/api/progress',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({word_id:w.id,deck_id:DECK_ID,correct:ok})});
+  const fb=document.getElementById('fb');
+  fb.className='fb-bar show '+(ok?'ok':'ng');
+  document.getElementById('fb-t').textContent=ok?'🎉 Chính xác!':'❌ Sai rồi!';
+  document.getElementById('fb-s').textContent=ok?'Xuất sắc!`:`Đáp án đúng: '+w.word;
+  if(ok)speak(w.word,LANG);
+}
+function nextQ(){idx++;load();}
+async function finish(){
+  document.getElementById('prog').style.width='100%';
+  const acc=Math.round(correct/words.length*100);
+  document.getElementById('r-c').textContent=correct;document.getElementById('r-w').textContent=wrong;document.getElementById('r-a').textContent=acc+'%';
+  document.getElementById('res-ico').textContent=acc>=80?'🏆':acc>=50?'⭐':'💪';
+  const score=correct*25;
+  const d=await saveScore('typing',DECK_ID,score,Math.round((Date.now()-t0)/1000));
+  document.getElementById('res-xp').textContent=`⚡ +${d.xp_earned||0} XP`;
+  document.getElementById('fb').className='fb-bar';
+  document.getElementById('main').style.display='none';document.getElementById('res').style.display='block';
+}
+function restart(){idx=0;correct=0;wrong=0;t0=Date.now();words.sort(()=>Math.random()-.5);
+  document.getElementById('main').style.display='';document.getElementById('res').style.display='none';load();}
+initSoundToggle("sfx-tog");
+load();
+</script>
+</body></html>

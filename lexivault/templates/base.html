@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}LexiVault Pro{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="/static/css/main.css">
+<script>(function(){var t=localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+<script src="/static/js/pronounce.js"></script>
+{% block head %}{% endblock %}
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-logo"><span class="ico">🧬</span> LexiVault</a>
+  <div class="nav-r">
+    <div class="pill g"><img src="/static/icons/fire.png" width="25"> <span id="ns">{{ u.streak }}</span></div>
+    <div class="pill p"><img src="/static/icons/heart.png" width="25"><span id="nx">{{ u.xp }}</span> XP</div>
+    {% if u.role=='admin' %}<img src="/static/icons/admin.png" width="25"></a>{% endif %}
+
+    <span style="font-weight:700;font-size:13px;color:var(--text2);">{{ u.username }}</span>
+    <span id="ti" style="font-size:16px;cursor:pointer;" onclick="togT()">☀</span>
+    <button class="theme-tog" onclick="togT()" aria-label="Theme"></button>
+    <a href="/logout" class="btn btn-ghost btn-sm">Out</a>
+  </div>
+</nav>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="s-sec">Học tập</div>
+
+    <a href="/" class="s-link {% if request.path=='/' and request.args.get('lang') is none %}active{% endif %}">
+        <img src="/static/icons/home.png" width="30"> Trang chủ
+    </a>
+
+    <a href="/games" class="s-link {% if request.path=='/games' %}active{% endif %}">
+        <img src="/static/icons/game.png" width="30"> Trò chơi
+    </a>
+
+    <a href="/chat" class="s-link {% if request.path=='/chat' %}active{% endif %}">
+        <img src="/static/icons/chat.png" width="30"> Chatbot
+
+    </a>
+
+    <a href="/review" class="s-link {% if request.path=='/review' %}active{% endif %}">
+        <img src="/static/icons/repeat.png" width="30"></i> Spaced Repetition
+    </a>
+
+    <div class="s-sec">Ngôn ngữ</div>
+
+    <!-- EN -->
+    <a href="/?lang=en" class="s-link {% if request.args.get('lang')=='en' %}active{% endif %}">
+        <img src="/static/flags/gb.png" width="30"> Tiếng Anh
+    </a>
+
+    <!-- JA -->
+    <a href="/?lang=ja" class="s-link {% if request.args.get('lang')=='ja' %}active{% endif %}">
+        <img src="/static/flags/jp.png" width="30"> Tiếng Nhật
+    </a>
+
+    <!-- KO -->
+    <a href="/?lang=ko" class="s-link {% if request.args.get('lang')=='ko' %}active{% endif %}">
+        <img src="/static/flags/kr.png" width="30"> Tiếng Hàn
+    </a>
+
+    {% if u.role=='admin' %}
+    <div class="s-sec">Admin</div>
+    <a href="/admin" class="s-link {% if request.path=='/admin' %}active{% endif %}"><img src="/static/icons/admin.png" width="25"></span> Dashboard</a>
+    {% endif %}
+
+    <div style="height:1px;background:var(--border);margin:12px 8px;"></div>
+
+    <a href="/profile" class="s-link {% if request.path=='/profile' %}active{% endif %}">
+        <img src="/static/icons/profile.png" width="25"></i> Hồ sơ của tôi
+    </a>
+    <a href="/logout" class="s-link" style="color:var(--text3);">
+        <img src="/static/icons/logout.png" width="25"> Đăng xuất
+    </a>
+</aside>
+  <main class="main">
+    <div class="main-shell">
+      {% with msgs=get_flashed_messages(with_categories=true) %}
+      {% for cat,msg in msgs %}<div class="alert alert-{{ 'ok' if cat=='success' else 'err' }}">{{ msg }}</div>{% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+<script>
+function applyT(t){document.documentElement.setAttribute('data-theme',t);const i=document.getElementById('ti');if(i)i.textContent=t==='dark'?'🌙':'☀️';localStorage.setItem('lv_t',t);}
+function togT(){applyT(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');}
+applyT(localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
+initSoundToggle('sfx-tog');
+fetch('/api/stats').then(r=>r.json()).then(d=>{
+  document.getElementById('nx').textContent=d.xp;
+  document.getElementById('ns').textContent=d.streak;
+  document.getElementById('ng').textContent=d.gems;
+}).catch(()=>{});
+function toast(msg,type='ok'){
+  const t=document.createElement('div');
+  t.className=`toast toast-${type}`;t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.classList.add('show'),10);
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},2500);
+}
+function speak(word,lang,ipa){
+  if(window.LVPronunciation) return window.LVPronunciation.play(word,{language:lang, ipa:ipa||'', rate:0.85});
+  if(!('speechSynthesis' in window))return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(word);
+  u.lang=lang==='ja'?'ja-JP':lang==='ko'?'ko-KR':lang==='fr'?'fr-FR':'en-US';
+  u.rate=.85;window.speechSynthesis.speak(u);
+}
+window.lexiSpeak=speak;
+</script>
+{% block scripts %}{% endblock %}
+
+
+<div id="global-ach-toast" style="position:fixed;bottom:80px;right:24px;z-index:9999;
+  background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;border-radius:16px;
+  padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(239,68,68,.4);
+  transform:translateX(120%);transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:300px;">
+  <span id="gat-ico" style="font-size:32px;"><img src="/static/icons/achieve.png" width="25"></span>
+  <div><div style="font-size:12px;opacity:.85;">🎉 Huy hiệu mới!</div><div id="gat-name" style="font-size:16px;font-weight:800;"></div></div>
+</div>
+<script>
+function showGlobalAch(icon, name) {
+  document.getElementById('gat-ico').textContent = icon;
+  document.getElementById('gat-name').textContent = name;
+  const t = document.getElementById('global-ach-toast');
+  t.style.transform = 'translateX(0)';
+  setTimeout(() => t.style.transform = 'translateX(120%)', 4000);
+}
+</script>
+</body>
+</html>

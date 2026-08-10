@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Hồ sơ — {{ u.username }}{% endblock %}
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+.profile-hero{background:linear-gradient(135deg,#0A0F1E 0%,#1a1040 40%,#0D2137 100%);border-radius:24px;padding:36px 32px;margin-bottom:28px;position:relative;overflow:hidden;border:1px solid rgba(139,92,246,.25);}
+.profile-hero::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,.18) 0%,transparent 70%);pointer-events:none;}
+.profile-hero::after{content:'';position:absolute;bottom:-60px;left:10%;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.12) 0%,transparent 70%);pointer-events:none;}
+.hero-inner{position:relative;z-index:1;display:flex;gap:24px;align-items:center;flex-wrap:wrap;}
+.hero-av{font-size:76px;line-height:1;filter:drop-shadow(0 4px 14px rgba(0,0,0,.4));flex-shrink:0;}
+.hero-info{flex:1;min-width:180px;}
+.hero-name{font-size:26px;font-weight:900;color:#fff;margin-bottom:4px;}
+.hero-sub{color:rgba(255,255,255,.55);font-size:13px;margin-bottom:12px;}
+.hero-pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.hero-pill{display:flex;align-items:center;gap:5px;padding:5px 13px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:99px;font-size:13px;font-weight:700;color:#fff;backdrop-filter:blur(8px);}
+.lvl-info{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:5px;}
+.lvl-bar{height:7px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;max-width:260px;}
+.lvl-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#10B981,#06B6D4);transition:width 1.2s ease;}
+.hero-actions{display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+.stat-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:26px;align-items:stretch;}
+.sg-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 14px 16px;text-align:center;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;min-height:122px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.sg-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1);}
+.sg-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0;}
+.sg-g::after{background:linear-gradient(90deg,#10B981,#06B6D4);}.sg-p::after{background:linear-gradient(90deg,#8B5CF6,#EC4899);}.sg-o::after{background:linear-gradient(90deg,#F59E0B,#EF4444);}.sg-b::after{background:linear-gradient(90deg,#3B82F6,#8B5CF6);}
+.sg-ico{font-size:24px;margin-bottom:8px;line-height:1;display:flex;align-items:center;justify-content:center;min-height:48px;}.sg-val{font-size:26px;font-weight:900;line-height:1.1;margin-bottom:4px;}.sg-lbl{font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;line-height:1.35;}
+.hm-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:24px;}
+.hm-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.hm-title{font-size:15px;font-weight:800;}
+.hm-grid-wrap{overflow-x:auto;padding-bottom:6px;}
+.hm-inner{display:flex;gap:4px;min-width:600px;align-items:flex-start;}
+.hm-day-col{display:flex;flex-direction:column;gap:0;margin-right:2px;flex-shrink:0;}
+.hm-dlbl{font-size:10px;color:var(--text3);height:21px;line-height:21px;font-weight:600;width:22px;text-align:right;padding-right:4px;}
+.hm-dlbl-spacer{height:21px;display:block;}
+.hm-col{display:flex;flex-direction:column;gap:0;}
+.hm-cell{width:18px;height:18px;border-radius:4px;background:var(--bg3);cursor:pointer;transition:transform .1s;flex-shrink:0;margin-bottom:3px;}
+.hm-cell:hover{transform:scale(1.35);z-index:2;position:relative;}
+.hm-l1{background:#D1FAE5;}.hm-l2{background:#6EE7B7;}.hm-l3{background:#10B981;}.hm-l4{background:#059669;}
+[data-theme="dark"] .hm-l1{background:#022C22;}[data-theme="dark"] .hm-l2{background:#065F46;}[data-theme="dark"] .hm-l3{background:#10B981;}[data-theme="dark"] .hm-l4{background:#34D399;}
+.hm-legend{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:11px;color:var(--text3);}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:24px;display:flex;flex-direction:column;}
+.chart-hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;flex-shrink:0;}
+.chart-ttl{font-size:15px;font-weight:800;}.chart-stl{font-size:12px;color:var(--text2);margin-top:2px;}
+.ctabs{display:flex;gap:5px;}
+.ctab{padding:4px 11px;border-radius:99px;border:1.5px solid var(--border);font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:var(--text2);transition:.15s;font-family:inherit;}
+.ctab.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+.charts-2col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
+.charts-13col{display:grid;grid-template-columns:1fr 2fr;gap:20px;margin-bottom:24px;}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:11px;margin-bottom:26px;}
+.ach-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 12px;display:flex;align-items:center;gap:10px;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;}
+.ach-card.earned{border-color:var(--green);}
+.ach-card.earned::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(16,185,129,.08),transparent);}
+.ach-card.earned:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(16,185,129,.18);}
+.ach-card.locked{opacity:.4;filter:grayscale(.7);}
+.ach-ico{font-size:28px;flex-shrink:0;}.ach-name{font-size:12px;font-weight:800;margin-bottom:2px;}.ach-desc{font-size:10px;color:var(--text2);line-height:1.4;}
+.ach-check{position:absolute;top:7px;right:7px;font-size:13px;}
+.dp-list{display:flex;flex-direction:column;gap:9px;margin-bottom:26px;}
+.dp-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:12px;transition:.15s;}
+.dp-row:hover{border-color:var(--green);}
+.dp-emo{font-size:22px;}.dp-info{flex:1;}.dp-name{font-size:13px;font-weight:700;margin-bottom:4px;}
+.dp-bar{height:5px;background:var(--border);border-radius:99px;overflow:hidden;}
+.dp-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--green),var(--cyan));transition:width 1s ease;}
+.dp-pct{font-size:12px;font-weight:800;color:var(--green);min-width:34px;text-align:right;}
+.score-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:26px;}
+.score-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+.sb-ico{font-size:20px;margin-bottom:4px;}.sb-val{font-size:22px;font-weight:900;color:var(--orange);}.sb-lbl{font-size:10px;color:var(--text2);font-weight:700;}
+.ach-toast-el{position:fixed;bottom:80px;right:24px;z-index:9999;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:11px;box-shadow:0 8px 32px rgba(239,68,68,.4);transform:translateX(120%);transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:290px;}
+.ach-toast-el.show{transform:translateX(0);}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.anim-up{animation:slideUp .45s ease both;}
+@media(max-width:1024px){.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:768px){.charts-2col,.charts-13col{grid-template-columns:1fr !important;}.hero-actions{flex-direction:row;}.hero-av{font-size:52px;}.hero-name{font-size:20px;}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.ach-grid{grid-template-columns:repeat(2,1fr);}.score-row{grid-template-columns:repeat(3,1fr);}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-hero anim-up">
+  <div class="hero-inner">
+    <div class="hero-av">{{ u.avatar }}</div>
+    <div class="hero-info">
+      <div class="hero-name">{{ u.username }}</div>
+      <div class="hero-sub">Thành viên từ {{ u.created_at[:10] }} · {{ achievements|length }}/{{ all_achievements|length }} huy hiệu</div>
+      <div class="hero-pills">
+        <div class="hero-pill"> <img src="/static/icons/fire.png" width="40">{{ u.streak }} ngày</div>
+        <div class="hero-pill"><img src="/static/icons/thunder.png" width="40">{{ u.xp }} XP</div>
+        <div class="hero-pill"><img src="/static/icons/achieve.png" width="40">Max {{ u.max_streak or u.streak }}</div>
+      </div>
+      {% set level=(u.xp//500)+1 %}{% set xp_prog=u.xp%500 %}
+      <div class="lvl-info">Cấp {{ level }} · {{ xp_prog }}/500 XP → Cấp {{ level+1 }}</div>
+      <div class="lvl-bar"><div class="lvl-fill" id="lvl-fill" data-p="{{ (xp_prog/500*100)|int }}" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stat-grid">
+  <div class="sg-card sg-g anim-up" style="animation-delay:.05s"><div class="sg-ico"><img src="/static/icons/vocab1.png" width="60"></div><div class="sg-val" data-c="{{ total_words }}">0</div><div class="sg-lbl">Từ đã học</div></div>
+  <div class="sg-card sg-p anim-up" style="animation-delay:.1s"><div class="sg-ico"><img src="/static/icons/study.png" width="60"></div><div class="sg-val" data-c="{{ mastered }}">0</div><div class="sg-lbl">Từ thuộc</div></div>
+  <div class="sg-card sg-o anim-up" style="animation-delay:.15s"><div class="sg-ico"><img src="/static/icons/play.png" width="60"></div><div class="sg-val" data-c="{{ total_games }}">0</div><div class="sg-lbl">Lượt chơi</div></div>
+  <div class="sg-card sg-b anim-up" style="animation-delay:.2s"><div class="sg-ico"><img src="/static/icons/vocab.png" width="60"></div><div class="sg-val">{{ my_decks|length }}</div><div class="sg-lbl">Bộ từ</div></div>
+
+  <div class="sg-card sg-p anim-up" style="animation-delay:.3s"><div class="sg-ico"><img src="/static/icons/huyhieu.png" width="60"></div><div class="sg-val">{{ achievements|length }}</div><div class="sg-lbl">Huy hiệu</div></div>
+</div>
+
+<!-- Heatmap -->
+<div class="hm-wrap anim-up">
+  <div class="hm-header">
+    <div><div class="hm-title" style="display:flex; align-items:center; gap:8px;"><img src="/static/icons/calendar.png" width="30"> Streak Calendar — 16 tuần</div><div id="hm-meta" style="font-size:12px;color:var(--text2);"></div></div>
+    <div class="hm-legend">Ít <div class="hm-cell"></div><div class="hm-cell hm-l1"></div><div class="hm-cell hm-l2"></div><div class="hm-cell hm-l3"></div><div class="hm-cell hm-l4"></div> Nhiều</div>
+  </div>
+  <div class="hm-grid-wrap">
+    <div class="hm-inner" id="hmap">
+      <div class="hm-day-col">
+        {% for d in ['T2','T3','T4','T5','T6','T7','CN'] %}<div class="hm-dlbl">{{ d }}</div>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row 1: Line + Radar -->
+<div class="charts-2col">
+  <div class="chart-card">
+    <div class="chart-hd">
+      <div><div class="chart-ttl">📈 Hoạt động học tập</div><div class="chart-stl">30 ngày gần đây</div></div>
+      <div class="ctabs">
+        <button class="ctab on" onclick="switchAct('xp',this)">XP</button>
+        <button class="ctab" onclick="switchAct('words',this)">Từ</button>
+      </div>
+    </div>
+    <div style="flex:1;min-height:220px;position:relative;"><canvas id="actChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-hd"><div><div class="chart-ttl">🕸️ Kỹ năng game</div><div class="chart-stl">Điểm cao nhất</div></div></div>
+    <div style="flex:1;min-height:220px;position:relative;"><canvas id="radarChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Charts row 2: Doughnut + Bar -->
+<div class="charts-13col">
+  <div class="chart-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div class="chart-ttl" style="margin-bottom:12px;align-self:flex-start;">🎯 Tiến độ</div>
+    <div style="width:150px;height:150px;position:relative;">
+      <canvas id="doughChart"></canvas>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
+        <div style="font-size:22px;font-weight:900;" id="d-pct">0%</div>
+        <div style="font-size:10px;color:var(--text2);">thuộc</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:10px;font-size:11px;font-weight:700;">
+      <span style="color:var(--green);">⬤ Thuộc</span><span style="color:var(--orange);">⬤ Học</span><span style="color:var(--text3);">⬤ Mới</span>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-hd"><div><div class="chart-ttl">📚 Bộ từ — % thuộc</div></div></div>
+    <div style="height:{{ [my_decks|length * 38, 150]|max }}px;"><canvas id="deckChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Best scores -->
+
+
+<!-- Achievements -->
+<div style="font-size:15px;font-weight:800;margin-bottom:12px;">🏆 Huy hiệu <span style="font-size:12px;color:var(--text2);font-weight:600;">({{ achievements|length }}/{{ all_achievements|length }})</span></div>
+<div class="ach-grid">
+  {% set ec=achievements|map(attribute='code')|list %}
+  {% for a in all_achievements %}
+  <div class="ach-card {{ 'earned' if a.earned else 'locked' }}">
+    <div class="ach-ico">{{ a.icon }}</div>
+    <div><div class="ach-name">{{ a.name }}</div><div class="ach-desc">{{ a.desc }}</div></div>
+    {% if a.earned %}<div class="ach-check">✅</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Deck progress -->
+
+
+<div class="ach-toast-el" id="ach-t">
+  <span id="ach-t-ico" style="font-size:30px;">🏆</span>
+  <div><div style="font-size:12px;opacity:.85;">🎉 Huy hiệu mới!</div><div id="ach-t-name" style="font-size:15px;font-weight:800;"></div></div>
+</div>
+
+<script>
+// Counters
+function animC(el,target,dur=900){const s=Date.now();const t=()=>{const p=Math.min((Date.now()-s)/dur,1);el.textContent=Math.round(target*(1-Math.pow(1-p,3))).toLocaleString();if(p<1)requestAnimationFrame(t);};requestAnimationFrame(t);}
+setTimeout(()=>{
+  document.querySelectorAll('[data-c]').forEach(el=>animC(el,+el.dataset.c));
+  document.getElementById('lvl-fill').style.width=document.getElementById('lvl-fill').dataset.p+'%';
+  document.querySelectorAll('.dp-fill').forEach(el=>el.style.width=el.dataset.w+'%');
+},200);
+
+// Heatmap
+(function(){
+  const log={{log_dict|tojson}};const grid=document.getElementById('hmap');
+  const today=new Date();const WEEKS=16;
+  const start=new Date(today);start.setDate(start.getDate()-WEEKS*7+1);
+  const dow=start.getDay();start.setDate(start.getDate()+(dow===0?-6:1-dow));
+  let days=0,words=0;
+  for(let w=0;w<WEEKS;w++){
+    const col=document.createElement('div');col.className='hm-col';
+    for(let d=0;d<7;d++){
+      const cur=new Date(start);cur.setDate(start.getDate()+w*7+d);
+      if(cur>today){const e=document.createElement('div');e.style.cssText='width:18px;height:18px;margin-bottom:3px;';col.appendChild(e);continue;}
+      const ds=cur.toISOString().slice(0,10);const data=log[ds];const wds=data?data.words:0;
+      if(wds>0){days++;words+=wds;}
+      const cell=document.createElement('div');
+      cell.className='hm-cell'+(wds>=20?' hm-l4':wds>=10?' hm-l3':wds>=5?' hm-l2':wds>=1?' hm-l1':'');
+      cell.title=`${ds}: ${wds} từ${data?', '+data.xp+' XP':''}`;
+      col.appendChild(cell);
+    }
+    grid.appendChild(col);
+  }
+  document.getElementById('hm-meta').textContent=`${days} ngày học · ${words} từ tổng cộng`;
+})();
+
+// Chart.js globals
+const isDark=()=>document.documentElement.getAttribute('data-theme')==='dark';
+const txC=()=>isDark()?'#94A3B8':'#475569';
+const gdC=()=>isDark()?'#1F2937':'#E2E8F0';
+const bgC=()=>isDark()?'#111827':'#FFFFFF';
+Chart.defaults.font.family="'Plus Jakarta Sans','Inter',sans-serif";
+Chart.defaults.font.weight='600';
+
+// Activity chart data (30 days)
+const weekly={{weekly|tojson}};
+const aLabels=[],aXP=[],aWords=[];
+for(let i=29;i>=0;i--){
+  const d=new Date();d.setDate(d.getDate()-i);
+  const ds=d.toISOString().slice(0,10);
+  const f=weekly.find(w=>w.date===ds);
+  aLabels.push(d.toLocaleDateString('vi',{month:'short',day:'numeric'}));
+  aXP.push(f?f.xp_earned:0);aWords.push(f?f.words_studied:0);
+}
+
+let actC=null;
+function buildAct(type){
+  const ctx=document.getElementById('actChart').getContext('2d');
+  if(actC)actC.destroy();
+  const isXP=type==='xp';
+  actC=new Chart(ctx,{type:'line',data:{labels:aLabels,datasets:[{
+    label:isXP?'XP':'Từ',data:isXP?aXP:aWords,
+    borderColor:isXP?'#8B5CF6':'#10B981',
+    backgroundColor:isXP?'rgba(139,92,246,.12)':'rgba(16,185,129,.12)',
+    fill:true,tension:.4,pointRadius:2.5,
+    pointBackgroundColor:isXP?'#8B5CF6':'#10B981',
+    pointBorderColor:'transparent',borderWidth:2.5,
+  }]},options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{intersect:false,mode:'index'},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:bgC(),titleColor:txC(),bodyColor:txC(),borderColor:gdC(),borderWidth:1,padding:10,cornerRadius:10}},
+    scales:{x:{grid:{color:gdC()},ticks:{color:txC(),maxTicksLimit:8,font:{size:10}}},y:{min:0,grid:{color:gdC()},ticks:{color:txC(),font:{size:10}}}},
+  }});
+}
+buildAct('xp');
+function switchAct(t,btn){document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');buildAct(t);}
+
+// Radar
+const bscores={{best_scores|tojson}};
+const gmap={flashcard:'Flash',quiz:'Quiz',typing:'Type',scramble:'Scram',speedmatch:'Speed',memorypairs:'Memory',wordbomb:'Bomb'};
+const rL=[],rD=[];
+Object.keys(gmap).forEach(g=>{const f=bscores.find(s=>s.game===g);rL.push(gmap[g]);rD.push(f?Math.min(f.best,500):0);});
+new Chart(document.getElementById('radarChart').getContext('2d'),{type:'radar',data:{labels:rL,datasets:[{label:'Điểm',data:rD,backgroundColor:'rgba(59,130,246,.15)',borderColor:'#3B82F6',pointBackgroundColor:'#3B82F6',pointBorderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:bgC(),titleColor:txC(),bodyColor:txC(),borderColor:gdC(),borderWidth:1,padding:10,cornerRadius:10}},scales:{r:{grid:{color:gdC()},pointLabels:{color:txC(),font:{size:10,weight:'700'}},ticks:{display:false},angleLines:{color:gdC()},suggestedMin:0,suggestedMax:500}}}});
+
+// Doughnut
+const tw={{total_words}},mw={{mastered}},lw={{learning}};
+const nw=Math.max(0,tw-mw-lw);
+// Nếu chưa học gì, hiển thị placeholder
+const doughData = tw===0 ? [0,0,1] : [mw, lw, nw];
+const doughColors = tw===0
+  ? [isDark()?'#1F2937':'#E2E8F0', isDark()?'#1F2937':'#E2E8F0', isDark()?'#374151':'#CBD5E0']
+  : ['#10B981','#F59E0B', isDark()?'#374151':'#CBD5E0'];
+new Chart(document.getElementById('doughChart').getContext('2d'),{type:'doughnut',data:{datasets:[{
+  data: doughData,
+  backgroundColor: doughColors,
+  borderWidth:0,hoverOffset:6}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'72%',
+    plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+document.getElementById('d-pct').textContent=(tw>0?Math.round(mw/tw*100):0)+'%';
+
+// Horizontal bar decks
+const deckD=[{% for d in my_decks %}{name:'{{ d.emoji }} {{ d.name[:14]|replace("'","") }}{% if d.name|length>14 %}…{% endif %}',pct:{{ ((d.mastered_w or 0)*100//(d.total_w or 1)) }}},{% endfor %}];
+if(deckD.length){
+  new Chart(document.getElementById('deckChart').getContext('2d'),{type:'bar',data:{labels:deckD.map(d=>d.name),datasets:[{label:'% Thuộc',data:deckD.map(d=>d.pct),backgroundColor:deckD.map((_,i)=>`hsl(${150+i*28},65%,${isDark()?'45':'50'}%)`),borderRadius:7,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:bgC(),titleColor:txC(),bodyColor:txC(),borderColor:gdC(),borderWidth:1,padding:10,cornerRadius:10,callbacks:{label:c=>c.parsed.x+'% đã thuộc'}}},scales:{x:{max:100,grid:{color:gdC()},ticks:{color:txC(),font:{size:10},callback:v=>v+'%'}},y:{grid:{display:false},ticks:{color:txC(),font:{size:11,weight:'700'}}}}}});
+} else {
+  const wrap = document.getElementById('deckChart').parentElement;
+  wrap.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:150px;gap:10px;color:var(--text3);"><span style="font-size:36px;">📂</span><div style="font-size:13px;font-weight:700;">Chưa có bộ từ nào</div><div style="font-size:11px;color:var(--text2);">Tạo bộ từ đầu tiên để xem tiến độ</div></div>';
+}
+
+// Achievement toast
+function showAchT(icon,name){document.getElementById('ach-t-ico').textContent=icon;document.getElementById('ach-t-name').textContent=name;const t=document.getElementById('ach-t');t.classList.add('show');if(typeof SFX!=='undefined')SFX.play('achievement');setTimeout(()=>t.classList.remove('show'),4500);}
+fetch('/api/achievements').then(r=>r.json()).then(d=>{if(d.new&&d.new.length)d.new.forEach((a,i)=>setTimeout(()=>showAchT(a.icon,a.name),i*2000));});
+
+// Dark mode re-render
+new MutationObserver(()=>{buildAct(document.querySelector('.ctab.on')?.textContent==='XP'?'xp':'words');}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+// Responsive
+const mq=window.matchMedia('(max-width:768px)');
+mq.addEventListener('change',e=>{['charts-2col','charts-13col'].forEach(c=>{const el=document.querySelector('.'+c);if(el)el.style.gridTemplateColumns=e.matches?'1fr':c==='charts-2col'?'1fr 1fr':'1fr 2fr';});});
+</script>
+{% endblock %}

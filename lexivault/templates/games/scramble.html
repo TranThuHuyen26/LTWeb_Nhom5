@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Word Scramble — LexiVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+<script src="/static/js/study.js"></script>
+<script src="/static/js/sfx.js"></script>
+<script>(function(){var t=localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+<div class="study-nav">
+  <a href="/deck/{{ d.id }}" class="study-x">✕</a>
+  <div class="study-bar"><div class="study-fill" id="prog" style="width:0%"></div></div>
+  <div id="ctr" style="font-size:13px;font-weight:700;color:var(--text2);"></div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="font-size:13px;font-weight:800;color:var(--purple);">⚡ <span id="live-score">0</span></div>
+    <button class="sfx-btn" id="sfx-tog">🔊</button>
+  <span id="ti" style="font-size:16px;cursor:pointer;" onclick="togT()">☀️</span>
+  </div>
+</div>
+<div class="study-wrap" id="main">
+  <div class="q-label">🔀 Sắp xếp lại các chữ cái</div>
+  <div class="q-big" style="font-size:20px;margin-bottom:4px;" id="q-mean"></div>
+  <div style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:20px;font-style:italic;" id="q-ex"></div>
+  <div class="sc-answer-row" id="ans-row"></div>
+  <div class="scramble-letters" id="letters"></div>
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;">
+    <button class="btn btn-ghost btn-sm" onclick="clearAns()">🔄 Reset</button>
+    <button class="btn btn-ghost btn-sm" onclick="showScrambleHint()">💡 Gợi ý</button>
+    <button onclick="speak(words[idx].word,LANG)" class="speak-btn" style="font-size:20px;">🔊</button>
+  </div>
+  <button class="btn btn-b btn-full btn-lg" onclick="checkScramble()" style="margin-top:14px;">✓ Kiểm tra</button>
+</div>
+<div class="fb-bar" id="fb">
+  <div><div class="fb-title" id="fb-t"></div><div class="fb-sub" id="fb-s"></div></div>
+  <button class="btn btn-g" onclick="nextQ()">Tiếp →</button>
+</div>
+<div class="study-wrap result" id="res" style="display:none;">
+  <div class="result-ico" id="res-ico">🏆</div>
+  <div class="result-title">Scramble xong!</div>
+  <div class="result-xp" id="res-xp">⚡ +0 XP</div>
+  <div class="result-stats">
+    <div class="rs"><div class="v" id="r-c">0</div><div class="l">✅ Đúng</div></div>
+    <div class="rs"><div class="v" id="r-w">0</div><div class="l">❌ Sai</div></div>
+    <div class="rs"><div class="v" id="r-a">0%</div><div class="l">🎯 Chính xác</div></div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <button onclick="restart()" class="btn btn-o btn-lg">🔄 Làm lại</button>
+    <a href="/game/wordbomb/{{ d.id }}" class="btn btn-r btn-lg">💣 Word Bomb</a>
+    <a href="/deck/{{ d.id }}" class="btn btn-ghost btn-lg">← Về bộ từ</a>
+  </div>
+</div>
+<script>
+const allWords=shuffle({{ words|tojson }}).filter(w=>w.word.length<=12);
+const words=allWords.slice(0,Math.min(allWords.length,15));
+const DECK_ID={{ d.id }};const LANG='{{ d.language }}';
+let idx=0,correct=0,wrong=0,answered=false,t0=Date.now();
+let scrambled=[],selected=[];
+applyT(localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
+
+function load(){
+  if(idx>=words.length){finish();return;}
+  answered=false;selected=[];
+  const w=words[idx];
+  document.getElementById('q-mean').textContent=w.meaning;
+  document.getElementById('q-ex').textContent=w.example?`"${w.example}"`:'';
+  document.getElementById('ctr').textContent=`${idx+1}/${words.length}`;
+  document.getElementById('prog').style.width=`${idx/words.length*100}%`;
+  document.getElementById('live-score').textContent=correct*30;
+  document.getElementById('fb').className='fb-bar';
+  // Create scrambled letters (avoid trivial case)
+  let arr=[...w.word.toLowerCase()];
+  do{arr.sort(()=>Math.random()-.5);}while(arr.join('')===w.word.toLowerCase()&&w.word.length>2);
+  scrambled=arr;
+  renderLetters();renderSlots();
+}
+function renderLetters(){
+  const div=document.getElementById('letters');div.innerHTML='';
+  scrambled.forEach((ch,i)=>{
+    const s=document.createElement('div');
+    s.className='sc-letter'+(selected.includes(i)?' used':'');
+    s.textContent=ch.toUpperCase();s.dataset.i=i;
+    s.onclick=()=>pickLetter(i);
+    div.appendChild(s);
+  });
+}
+function renderSlots(){
+  const row=document.getElementById('ans-row');row.innerHTML='';
+  const w=words[idx].word;
+  for(let i=0;i<selected.length;i++){
+    const s=document.createElement('div');s.className='sc-slot';
+    s.textContent=scrambled[selected[i]].toUpperCase();
+    s.dataset.pos=i;s.onclick=()=>removeSlot(i);
+    row.appendChild(s);
+  }
+  for(let i=selected.length;i<w.length;i++){
+    const s=document.createElement('div');s.className='sc-slot';s.textContent='_';
+    row.appendChild(s);
+  }
+}
+function pickLetter(i){if(selected.includes(i))return;
+  SFX.play("pick");selected.push(i);renderLetters();renderSlots();}
+function removeSlot(pos){selected.splice(pos,1);renderLetters();renderSlots();}
+function clearAns(){selected=[];renderLetters();renderSlots();}
+function showScrambleHint(){
+  const w=words[idx].word;
+  // Auto-fill first letter
+  const firstIdx=scrambled.indexOf(w[0].toLowerCase());
+  if(firstIdx>=0&&!selected.includes(firstIdx)){selected.unshift(firstIdx);renderLetters();renderSlots();}
+}
+async function checkScramble(){
+  if(answered||selected.length<words[idx].word.length)return;answered=true;
+  const w=words[idx];
+  const ans=selected.map(i=>scrambled[i]).join('');
+  const ok=ans.toLowerCase()===w.word.toLowerCase();
+  if(ok){correct++;SFX.play("correct");}else{wrong++;SFX.play("wrong");}
+  await fetch('/api/progress',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({word_id:w.id,deck_id:DECK_ID,correct:ok})});
+  const fb=document.getElementById('fb');
+  fb.className='fb-bar show '+(ok?'ok':'ng');
+  document.getElementById('fb-t').textContent=ok?`🎉 Đúng! "${w.word}"` : `❌ Sai! Từ đúng: "${w.word}"`;
+  document.getElementById('fb-s').textContent=ok?w.meaning:`Bạn gõ: "${ans.toUpperCase()}"`;
+  if(ok)speak(w.word,LANG);
+}
+function nextQ(){idx++;load();}
+async function finish(){
+  document.getElementById('prog').style.width='100%';
+  const acc=Math.round(correct/words.length*100);
+  document.getElementById('r-c').textContent=correct;document.getElementById('r-w').textContent=wrong;document.getElementById('r-a').textContent=acc+'%';
+  document.getElementById('res-ico').textContent=acc>=80?'🏆':acc>=50?'⭐':'💪';
+  const d=await saveScore('scramble',DECK_ID,correct*30,Math.round((Date.now()-t0)/1000));
+  document.getElementById('res-xp').textContent=`⚡ +${d.xp_earned||0} XP`;
+  document.getElementById('fb').className='fb-bar';
+  document.getElementById('main').style.display='none';document.getElementById('res').style.display='block';
+}
+function restart(){idx=0;correct=0;wrong=0;t0=Date.now();allWords.sort(()=>Math.random()-.5);
+  document.getElementById('main').style.display='';document.getElementById('res').style.display='none';load();}
+initSoundToggle("sfx-tog");
+load();
+</script>
+</body></html>

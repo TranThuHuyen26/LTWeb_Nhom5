@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LexiBot Gemini - LexiVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>(function(){var t=localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+<script src="/static/js/pronounce.js"></script>
+<style>
+:root{
+  --green:#10B981;--blue:#3B82F6;--blue-dk:#2563EB;--blue-lt:#DBEAFE;
+  --purple:#8B5CF6;--red:#EF4444;--orange:#F59E0B;
+  --bg:#F8FAFC;--bg2:#F1F5F9;--bg3:#E2E8F0;
+  --surface:#fff;--border:#E2E8F0;--border2:#CBD5E0;
+  --text:#0F172A;--text2:#475569;--text3:#94A3B8;
+}
+[data-theme="dark"]{
+  --bg:#0A0F1E;--bg2:#111827;--bg3:#1F2937;
+  --surface:#111827;--border:#1F2937;--border2:#374151;
+  --text:#F9FAFB;--text2:#9CA3AF;--text3:#4B5563;
+  --blue-lt:#1E3A5F;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans','Inter',sans-serif;background:var(--bg);color:var(--text)}
+.app{display:flex;height:100vh;width:100vw;overflow:hidden}
+.sidebar{width:260px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%;overflow:hidden}
+.sb-top{padding:16px 14px 12px;border-bottom:1px solid var(--border)}
+.sb-logo{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sb-logo-ico{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3B82F6,#8B5CF6);display:flex;align-items:center;justify-content:center}
+.sb-logo-name{font-size:16px;font-weight:900}
+.sb-logo-badge{font-size:10px;font-weight:800;background:linear-gradient(135deg,#3B82F6,#8B5CF6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-model{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg2);border-radius:8px;font-size:12px;font-weight:700;color:var(--text2)}
+.sb-model-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sb-body{flex:1;overflow-y:auto;padding:8px}
+.sb-sec{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:10px 10px 4px}
+.sb-deck{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);transition:.15s;border:1.5px solid transparent}
+.sb-deck:hover{background:var(--bg2);color:var(--text)}
+.sb-deck.on{background:var(--blue-lt);border-color:rgba(59,130,246,.4);color:var(--blue)}
+[data-theme="dark"] .sb-deck.on{background:rgba(59,130,246,.12);color:#93C5FD}
+.sb-prompt{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:9px;border:none;background:transparent;font-family:inherit;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:.15s}
+.sb-prompt:hover{background:var(--bg2);color:var(--text)}
+.main{flex:1;display:flex;flex-direction:column;height:100%;min-width:0;overflow:hidden}
+.topbar{height:56px;border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--surface)}
+.topbar-title{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.tb-btn{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:.15s;color:var(--text2)}
+.tb-btn:hover{background:var(--bg3);color:var(--text)}
+.deck-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--blue-lt);border:1px solid rgba(59,130,246,.3);border-radius:99px;font-size:12px;font-weight:700;color:var(--blue);cursor:pointer}
+[data-theme="dark"] .deck-chip{background:rgba(59,130,246,.12);color:#93C5FD}
+.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:4px}
+.messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:40px 20px}
+.welcome-title{font-size:22px;font-weight:900;margin-bottom:6px}
+.welcome-sub{color:var(--text2);font-size:14px;max-width:520px;line-height:1.6;margin-bottom:24px}
+.starter-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;max-width:560px}
+.starter{padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);font-family:inherit;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;text-align:left;transition:.2s;line-height:1.4}
+.starter:hover{border-color:var(--blue);background:var(--blue-lt);color:var(--blue);transform:translateY(-2px)}
+[data-theme="dark"] .starter:hover{background:rgba(59,130,246,.12);color:#93C5FD}
+.starter-ico{font-size:18px;display:block;margin-bottom:5px}
+.msg{display:flex;gap:10px;align-items:flex-start;animation:msgIn .3s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:1px solid var(--border)}
+.av.bot{background:linear-gradient(135deg,#3B82F6,#8B5CF6);color:#fff;font-size:14px}
+.av.usr{background:var(--bg2)}
+.bubble-wrap{display:flex;flex-direction:column;gap:3px;max-width:72%}
+.msg.user .bubble-wrap{align-items:flex-end}
+.bubble{padding:13px 16px;border-radius:18px;font-size:14px;line-height:1.7;word-break:break-word}
+.bubble.bot{background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 18px 4px}
+.bubble.usr{background:linear-gradient(135deg,#3B82F6,#8B5CF6);color:#fff;border-radius:18px 18px 4px 18px}
+.bubble-time{font-size:10px;color:var(--text3);padding:0 4px}
+.bubble strong{font-weight:800}
+.bubble em{font-style:italic}
+.bubble code{background:rgba(0,0,0,.07);padding:2px 6px;border-radius:5px;font-family:'Courier New',monospace;font-size:13px}
+.bubble.usr code{background:rgba(255,255,255,.2)}
+.bubble ul,.bubble ol{padding-left:18px;margin:6px 0}
+.bubble li{margin-bottom:3px}
+.bubble p{margin:0 0 8px}
+.bubble p:last-child{margin:0}
+.bubble h3{font-size:15px;font-weight:800;margin:8px 0 4px}
+.bubble-actions{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.bubble-act-btn{padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);font-size:11px;font-weight:700;color:var(--text2);cursor:pointer;transition:.15s}
+.bubble-act-btn:hover{background:var(--bg3)}
+.pron-card{margin-top:8px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--bg2)}
+.pron-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.pron-head{font-size:14px;font-weight:800;color:var(--text)}
+.pron-ipa{font-size:12px;font-weight:700;color:var(--blue);padding:3px 8px;border-radius:999px;background:rgba(59,130,246,.12)}
+.pron-sub{font-size:11px;color:var(--text3);margin-bottom:8px}
+.pron-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pron-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;transition:.15s}
+.pron-btn:hover{background:var(--bg3);color:var(--text)}
+.typing{display:flex;align-items:center;gap:5px;padding:13px 16px;background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 18px 4px;width:fit-content}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text3);animation:bounce 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+.input-area{padding:14px 20px 16px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.input-deck-chip{margin-bottom:8px}
+.input-row{display:flex;align-items:flex-end;gap:10px;background:var(--bg2);border:2px solid var(--border);border-radius:18px;padding:8px 8px 8px 16px;transition:.2s}
+.input-row:focus-within{border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.inp{flex:1;border:none;background:transparent;font-family:inherit;font-size:14px;color:var(--text);outline:none;resize:none;max-height:130px;min-height:24px;line-height:1.55;padding:5px 0}
+.inp::placeholder{color:var(--text3)}
+.send{width:40px;height:40px;border-radius:12px;border:none;background:linear-gradient(135deg,#3B82F6,#8B5CF6);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:.2s;flex-shrink:0}
+.send:hover{transform:scale(1.06);filter:brightness(1.08)}
+.send:active{transform:scale(.95)}
+.send:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.input-hint{font-size:11px;color:var(--text3);margin-top:6px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px}
+.demo-bar{background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(239,68,68,.08));border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:9px 14px;font-size:12px;font-weight:600;color:var(--orange);margin-bottom:10px;display:none;line-height:1.5}
+.demo-bar code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:11px}
+.err-bar{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:9px 14px;font-size:12px;font-weight:600;color:var(--red);margin-bottom:10px;display:none;line-height:1.5}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .messages{padding:14px}
+  .bubble-wrap{max-width:88%}
+  .starter-grid{grid-template-columns:1fr}
+  .input-area{padding:10px 12px 12px}
+  .topbar{padding:0 14px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-top">
+      <div class="sb-logo">
+        <div class="sb-logo-ico"><img src="/static/icons/chat.png" width="25"></div>
+        <div>
+          <div class="sb-logo-name">LexiBot <span class="sb-logo-badge">Gemini</span></div>
+          <div style="font-size:11px;color:var(--text3);">AI tra cứu Anh - Hàn - Nhật + phát âm</div>
+        </div>
+      </div>
+      <div class="sb-model">
+        <div class="sb-model-dot"></div>
+        <span id="model-label">{{ chat_model_label }}</span>
+      </div>
+    </div>
+
+    <div class="sb-body">
+      <div class="sb-sec">📚 Bộ từ vựng</div>
+      <div class="sb-deck on" data-id="" onclick="pickDeck('','🌍','Tất cả',this)">
+        🌍 Không chọn bộ cụ thể
+      </div>
+      {% for d in my_decks %}
+      <div class="sb-deck" data-id="{{ d.id }}" onclick="pickDeck('{{ d.id }}','{{ d.emoji }}','{{ d.name }}',this)">
+        {{ d.emoji }} {{ d.name[:24] }}{% if d.name|length>24 %}…{% endif %}
+      </div>
+      {% endfor %}
+
+      <div class="sb-sec" style="margin-top:8px;">💡 Hỏi nhanh</div>
+      {% set prompts = [
+        ('📖','Giải thích từ "ambitious" và cho ví dụ'),
+        ('🇯🇵','Từ "quả táo" sang tiếng Nhật, kèm IPA và ví dụ'),
+        ('🇰🇷','Dịch "cảm ơn" sang tiếng Hàn và chỉ cách đọc'),
+        ('🇬🇧','Explain 안녕하세요 in English'),
+        ('🔄','Phân biệt "affect" và "effect"'),
+        ('🗣️','Trả lời bằng tiếng Nhật: nghĩa của "library"'),
+        ('🇰🇷','Translate "xin chào" to Korean with pronunciation'),
+        ('🔊',"Phiên âm IPA và cách đọc 'colonel'")
+      ] %}
+      {% for ico, p in prompts %}
+      <button class="sb-prompt" onclick="usePrompt(this.dataset.p)" data-p="{{ p }}">{{ ico }} {{ p }}</button>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">
+        <img src="/static/icons/chat.png" width="25"> LexiBot Gemini
+      </div>
+      <div class="topbar-actions">
+        <button class="tb-btn" onclick="clearChat()" title="Xóa cuộc trò chuyện"><img src="/static/icons/rac.png" width="25"></button>
+        <button class="tb-btn" id="theme-btn" onclick="toggleTheme()" title="Đổi giao diện">☀️</button>
+        <a href="/" class="tb-btn" title="Về trang chủ" style="text-decoration:none;"><img src="/static/icons/home.png" width="25"></a>
+      </div>
+    </div>
+
+    <div class="messages" id="msgs">
+      <div class="welcome" id="welcome">
+        <div class="welcome-ico"><img src="/static/icons/chat.png" width="100"></div>
+        <div class="welcome-title">Xin chào, {{ u.username }}! 👋</div>
+        <div class="welcome-sub">Tôi là <strong>LexiBot Gemini</strong> — trợ lý AI tra cứu ngoại ngữ. Tôi có thể giải thích và dịch <strong>tiếng Anh, tiếng Hàn, tiếng Nhật</strong>, tự trả lời theo đúng ngôn ngữ bạn yêu cầu, đồng thời hiển thị IPA/romanization và tạo nút 🔊 để đọc chuẩn hơn ngay trong cuộc trò chuyện.</div>
+        <div class="starter-grid">
+          <button class="starter" onclick="usePrompt('Giải thích từ ambitious - phiên âm IPA, nghĩa và 2 ví dụ thực tế')">
+            <span class="starter-ico">📖</span>Giải thích từ vựng
+          </button>
+          <button class="starter" onclick="usePrompt('Từ quả táo sang tiếng Nhật là gì? Trả lời bằng tiếng Việt, có kanji/kana, romaji và IPA')">
+            <span class="starter-ico">🇯🇵</span>Dịch Việt sang Nhật
+          </button>
+          <button class="starter" onclick="usePrompt('Dịch từ cảm ơn sang tiếng Hàn, cho Hangul, romanization và ví dụ ngắn')">
+            <span class="starter-ico">🇰🇷</span>Dịch Việt sang Hàn
+          </button>
+          <button class="starter" onclick="usePrompt('Explain 감사합니다 in English with IPA and one example')">
+            <span class="starter-ico">🌐</span>Trả lời theo ngôn ngữ yêu cầu
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="demo-bar" id="demo-bar" style="display:{{ 'block' if not gemini_ready else 'none' }};">
+        ⚠️ <strong>Demo mode</strong> - Chưa có Gemini API key. Để dùng AI thật:
+        tạo <code>GEMINI_API_KEY</code> từ <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue);">Google AI Studio</a> rồi khởi động lại app
+      </div>
+      <div class="err-bar" id="err-bar"></div>
+      <div class="input-deck-chip" id="deck-chip-area" style="display:none;">
+        <span class="deck-chip" onclick="pickDeck('','🌍','Tất cả',null)">
+          <span id="dc-ico">📚</span> <span id="dc-name">Bộ từ</span> &nbsp;×
+        </span>
+      </div>
+      <div class="input-row">
+        <textarea class="inp" id="inp" placeholder="Ví dụ: 'quả táo' sang tiếng Nhật, hoặc explain 안녕하세요 in English..." rows="1" onkeydown="onKey(event)" oninput="grow(this)"></textarea>
+        <button class="send" id="send" onclick="send()">➤</button>
+      </div>
+      <div class="input-hint">
+        <span id="char-hint" style="color:var(--text3);"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('theme-btn').textContent=t==='dark'?'🌙':'☀️';
+  localStorage.setItem('lv_t',t);
+}
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');}
+applyTheme(localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
+
+let history = [];
+let deckId = '';
+let busy = false;
+
+function pickDeck(id, emoji, name, el) {
+  deckId = id;
+  document.querySelectorAll('.sb-deck').forEach(e=>e.classList.remove('on'));
+  if(el) el.classList.add('on');
+  const chip = document.getElementById('deck-chip-area');
+  if(id) {
+    chip.style.display='block';
+    document.getElementById('dc-ico').textContent=emoji;
+    document.getElementById('dc-name').textContent=name;
+  } else {
+    chip.style.display='none';
+    document.querySelector('.sb-deck[data-id=""]')?.classList.add('on');
+  }
+}
+
+function grow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,130)+'px';}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function usePrompt(text){
+  document.getElementById('inp').value=text;
+  grow(document.getElementById('inp'));
+  send();
+}
+
+function md(text){
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/^(\d+)\. (.+)$/gm,'<li>$2</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)+/g,s=>`<ul>${s}</ul>`)
+    .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')
+    .replace(/^(?!<[hup]|<li)(.+)$/,'<p>$1</p>');
+}
+
+function now(){return new Date().toLocaleTimeString('vi',{hour:'2-digit',minute:'2-digit'});}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(s){return escHtml(String(s||'')).replace(/"/g,'&quot;');}
+
+function renderPronunciation(meta){
+  if(!meta || !meta.text) return '';
+  const head = meta.headword ? `<div class="pron-head">${escHtml(meta.headword)}</div>` : '';
+  const nativeScript = meta.native_script ? `<div class="pron-ipa">${escHtml(meta.native_script)}</div>` : '';
+  const romanization = meta.romanization ? `<div class="pron-ipa">${escHtml(meta.romanization)}</div>` : '';
+  const ipa = meta.ipa ? `<div class="pron-ipa">/${escHtml(meta.ipa)}/</div>` : '';
+  const sentenceBtn = meta.example_sentence
+    ? `<button class="pron-btn" data-text="${escAttr(meta.example_sentence)}" data-ipa="" data-lang="${escAttr(meta.language_code||'en-US')}" onclick="playPronBtn(this)">🗣️ Đọc ví dụ</button>`
+    : '';
+  return `
+    <div class="pron-card">
+      <div class="pron-top">${head}${nativeScript}${romanization}${ipa}</div>
+      <div class="pron-sub">Nhấn để nghe cách đọc bằng Gemini TTS. App ưu tiên native script cho Nhật/Hàn và fallback sang giọng trình duyệt nếu cần.</div>
+      <div class="pron-actions">
+        <button class="pron-btn" data-text="${escAttr(meta.text)}" data-ipa="${escAttr(meta.ipa||'')}" data-lang="${escAttr(meta.language_code||'en-US')}" onclick="playPronBtn(this)">🔊 Đọc từ chính</button>
+        ${sentenceBtn}
+      </div>
+    </div>`;
+}
+
+function addMsg(role, text, extra='', meta=null) {
+  const w=document.getElementById('welcome');
+  if(w) w.remove();
+  const msgs=document.getElementById('msgs');
+  const isUser=role==='user';
+  const div=document.createElement('div');
+  div.className='msg'+(isUser?' user':'');
+
+  const actionsHtml = !isUser ? `
+    <div class="bubble-actions">
+      <button class="bubble-act-btn" onclick="copyText(this)">📋 Copy</button>
+      <button class="bubble-act-btn" data-answer-lang="${escAttr((meta&&meta.answer_language)||'vi')}" onclick="speakText(this)">🔊 Đọc phần giải thích</button>
+    </div>` : '';
+
+  const pronHtml = !isUser ? renderPronunciation(meta) : '';
+
+  div.innerHTML=`
+    <div class="av ${isUser?'usr':'bot'}">${isUser?'{{ u.avatar }}':'🤖'}</div>
+    <div class="bubble-wrap">
+      <div class="bubble ${isUser?'usr':'bot'}">${isUser?escHtml(text):md(text)}</div>
+      ${pronHtml}
+      ${actionsHtml}
+      <div class="bubble-time">${now()}${extra}</div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+  return div;
+}
+
+function copyText(btn){
+  const txt=btn.closest('.bubble-wrap').querySelector('.bubble').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{btn.textContent='✅ Copied!';setTimeout(()=>btn.textContent='📋 Copy',2000);});
+}
+function speakText(btn){
+  const txt=btn.closest('.bubble-wrap').querySelector('.bubble').textContent;
+  const answerLang=(btn.dataset.answerLang||'vi').toLowerCase();
+  const langMap={vi:'vi-VN',en:'en-US',ja:'ja-JP',ko:'ko-KR'};
+  const voiceLang=langMap[answerLang]||'vi-VN';
+  if(window.LVPronunciation){
+    window.LVPronunciation.browserSpeak(txt.slice(0,350),voiceLang,0.92);
+    return;
+  }
+  if('speechSynthesis' in window){
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(txt.slice(0,350));
+    u.lang=voiceLang;u.rate=0.92;window.speechSynthesis.speak(u);
+  }
+}
+
+async function playPronBtn(btn){
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang tạo audio...';
+  try{
+    if(window.LVPronunciation){
+      await window.LVPronunciation.play(btn.dataset.text || '', {
+        ipa: btn.dataset.ipa || '',
+        language: btn.dataset.lang || 'en-US',
+        rate: 0.88,
+      });
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+function showTyping(){
+  const w=document.getElementById('welcome');if(w)w.remove();
+  const msgs=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg';d.id='typing';
+  d.innerHTML='<div class="av bot"><img src="/static/icons/chat.png" width="25"></div><div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+}
+function hideTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+
+async function send(){
+  const inp=document.getElementById('inp');
+  const text=inp.value.trim();
+  if(!text||busy) return;
+
+  document.getElementById('demo-bar').style.display='none';
+  document.getElementById('err-bar').style.display='none';
+
+  inp.value='';inp.style.height='';
+  addMsg('user',text);
+  history.push({role:'user',content:text});
+
+  busy=true;
+  document.getElementById('send').disabled=true;
+  showTyping();
+
+  try{
+    const r=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:history.slice(-20),deck_id:deckId||null})
+    });
+    const d=await r.json();
+    hideTyping();
+
+    if(d.ok){
+      const model=d.model?` · ${d.model}`:'';
+      addMsg('assistant',d.reply,model,d.meta||null);
+      history.push({role:'assistant',content:d.reply});
+      if(d.demo){
+        document.getElementById('demo-bar').style.display='block';
+      }
+    } else {
+      const errMsg=`❌ **Lỗi API:** ${d.error||'Không thể kết nối'}\n\nHãy kiểm tra GEMINI_API_KEY trong cấu hình app`;
+      addMsg('assistant',errMsg);
+      document.getElementById('err-bar').style.display='block';
+      document.getElementById('err-bar').textContent='⚠️ '+(d.error||'Lỗi không xác định');
+    }
+  } catch(e){
+    hideTyping();
+    addMsg('assistant','❌ **Mất kết nối** - hãy thử lại.');
+  }
+
+  busy=false;
+  document.getElementById('send').disabled=false;
+  document.getElementById('inp').focus();
+}
+
+function clearChat(){
+  history=[];
+  const msgs=document.getElementById('msgs');
+  msgs.innerHTML='';
+  const w=document.createElement('div');w.className='welcome';w.id='welcome';
+  w.innerHTML=`<div class="welcome-ico"><img src="/static/icons/chat.png" width="100"></div>
+    <div class="welcome-title">Cuộc trò chuyện mới!</div>
+    <div class="welcome-sub">Bạn có thể tra cứu Anh, Hàn, Nhật; dịch từ tiếng Việt; hoặc yêu cầu trả lời bằng đúng ngôn ngữ bạn muốn.</div>`;
+  msgs.appendChild(w);
+}
+
+document.getElementById('inp').addEventListener('input',function(){
+  const len=this.value.length;
+  document.getElementById('char-hint').textContent=len>100?len:'';
+});
+document.getElementById('inp').focus();
+</script>
+</body>
+</html>

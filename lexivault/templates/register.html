@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Đăng ký — LexiVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+<script>(function(){var t=localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+.auth-body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px;background:
+  radial-gradient(circle at top left,rgba(16,185,129,.18),transparent 28%),
+  radial-gradient(circle at top right,rgba(59,130,246,.16),transparent 30%),
+  linear-gradient(135deg,#0A0F1E,#0D2137);}
+.auth-card{background:var(--surface);border-radius:28px;padding:38px;width:100%;max-width:460px;border:1px solid var(--border);box-shadow:var(--shadow-lg);}
+.auth-head{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:24px;}
+.auth-logo{width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center;
+  font-size:30px;margin-bottom:14px;background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;box-shadow:0 12px 28px rgba(16,185,129,.28);}
+.auth-title{font-size:26px;font-weight:900;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--text2);max-width:300px;line-height:1.5;}
+.auth-form input,.auth-form select{width:100%;padding:12px 15px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);outline:none;transition:.2s;margin-bottom:11px;}
+.auth-form input:focus{border-color:var(--green);}
+.av-section{margin-bottom:16px;}
+.av-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.av-label{font-size:12px;font-weight:700;color:var(--text2);}
+.av-preview{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:var(--bg2);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text2);}
+.av-preview-emoji{font-size:18px;line-height:1;}
+.avatars{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:4px;}
+.av-btn{aspect-ratio:1;border-radius:14px;border:2px solid var(--border);background:var(--bg2);
+  font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;}
+.av-btn:hover{transform:translateY(-2px);border-color:var(--green);}
+.av-btn.sel{border-color:var(--green);background:var(--green-lt);box-shadow:0 8px 18px rgba(16,185,129,.16);}
+.auth-foot{margin-top:16px;text-align:center;font-size:13px;color:var(--text2);}
+@media (max-width: 640px){
+  .auth-body{padding:16px;}
+  .auth-card{padding:26px 20px;border-radius:22px;}
+  .auth-title{font-size:22px;}
+  .avatars{grid-template-columns:repeat(4,minmax(0,1fr));}
+}
+</style>
+</head>
+<body class="auth-body">
+<div class="auth-card">
+  <div class="auth-head">
+    <div class="auth-logo">🧬</div>
+    <div class="auth-title">Tạo tài khoản</div>
+    <div class="auth-sub">Chọn một avatar phù hợp rồi tạo tài khoản để bắt đầu học trên LexiVault.</div>
+  </div>
+  {% if error %}<div class="alert alert-err">⚠️ {{ error }}</div>{% endif %}
+  <form method="POST" class="auth-form">
+    <div class="av-section">
+      <div class="av-head">
+        <div class="av-label">Chọn avatar</div>
+        <div class="av-preview">
+          <span class="av-preview-emoji" id="av-preview">👩</span>
+          <span>Đang chọn</span>
+        </div>
+      </div>
+      <div class="avatars" id="avatars">
+      {% for av in ['👩','🧑‍🎓','👨‍💻','👩‍🎨','🧑‍🚀','👨‍🍳','👩‍⚕️','🧑‍🏫','👨‍🔬','👩‍💼'] %}
+      <div class="av-btn {% if loop.first %}sel{% endif %}" onclick="selectAv('{{ av }}',this)">{{ av }}</div>
+      {% endfor %}
+      </div>
+    </div>
+    <input type="hidden" name="avatar" id="av-inp" value="👩">
+    <input type="text" name="username" placeholder="Tên đăng nhập (≥3 ký tự)" required minlength="3">
+    <input type="password" name="password" placeholder="Mật khẩu (≥4 ký tự)" required minlength="4">
+    <button type="submit" class="btn btn-g btn-full btn-lg">Đăng ký 🎉</button>
+  </form>
+  <div class="auth-foot">Đã có tài khoản? <a href="/login" style="color:var(--blue);font-weight:700;">Đăng nhập</a></div>
+</div>
+<script>
+function selectAv(av,el){
+  document.getElementById('av-inp').value=av;
+  document.getElementById('av-preview').textContent=av;
+  document.querySelectorAll('.av-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+</script>
+</body></html>

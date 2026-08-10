@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Daily Challenge — LexiVault{% endblock %}
+{% block head %}
+<style>
+.daily-hero {
+  background: linear-gradient(135deg, #0F172A, #1a1040, #0D2137);
+  border-radius: 24px; padding: 36px 32px; margin-bottom: 28px;
+  text-align: center; position: relative; overflow: hidden;
+  border: 1px solid rgba(139,92,246,.3);
+}
+.daily-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(139,92,246,.2) 0%, transparent 60%),
+              radial-gradient(circle at 70% 50%, rgba(59,130,246,.15) 0%, transparent 60%);
+}
+.daily-hero-content { position: relative; z-index: 1; }
+.daily-title { font-size: 14px; font-weight: 800; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+.daily-heading { font-size: 30px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+.daily-sub { color: rgba(255,255,255,.6); font-size: 14px; }
+.daily-reward { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
+  background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(239,68,68,.2));
+  border: 1px solid rgba(245,158,11,.4); border-radius: 99px; padding: 8px 18px;
+  color: #FCD34D; font-weight: 800; font-size: 14px; }
+
+.word-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 32px; text-align: center;
+  margin-bottom: 24px; position: relative; overflow: hidden;
+}
+.word-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, #8B5CF6, #3B82F6, #10B981);
+}
+.wc-word { font-size: 44px; font-weight: 900; margin-bottom: 8px; }
+.wc-pron { font-size: 16px; color: var(--blue); font-style: italic; margin-bottom: 6px; }
+.wc-pos { display: inline-flex; padding: 3px 10px; border-radius: 99px; background: var(--purple); color: #fff; font-size: 12px; font-weight: 700; margin-bottom: 16px; }
+
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.dc-opt {
+  padding: 18px 16px; border: 2px solid var(--border); border-radius: 14px;
+  background: var(--surface); font-family: inherit; font-weight: 700; font-size: 15px;
+  cursor: pointer; color: var(--text); transition: all .2s; text-align: left; line-height: 1.4;
+}
+.dc-opt:hover:not(:disabled) { background: var(--bg2); border-color: var(--purple); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(139,92,246,.2); }
+.dc-opt.correct { background: var(--green-lt); border-color: var(--green); color: var(--green-dk); transform: none; }
+.dc-opt.wrong { background: var(--red-lt); border-color: var(--red); color: var(--red-dk); }
+.dc-opt:disabled { cursor: not-allowed; }
+
+.result-card {
+  background: var(--surface); border-radius: 20px; padding: 32px;
+  text-align: center; border: 1px solid var(--border);
+}
+.rc-trophy { font-size: 64px; margin-bottom: 12px; animation: pop .5s cubic-bezier(.36,.07,.19,.97); }
+@keyframes pop { 0%{transform:scale(0)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
+
+.lb-table { width: 100%; border-collapse: collapse; }
+.lb-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.lb-table tr:hover td { background: var(--bg2); }
+
+.done-card { background: linear-gradient(135deg, var(--green-lt), var(--surface)); border: 2px solid var(--green); border-radius: 20px; padding: 28px; text-align: center; margin-bottom: 24px; }
+[data-theme="dark"] .done-card { background: linear-gradient(135deg, rgba(16,185,129,.1), var(--surface)); }
+
+.confetti-wrap { position: fixed; inset: 0; pointer-events: none; z-index: 9998; }
+.conf { position: absolute; width: 10px; height: 10px; border-radius: 2px; animation: fall linear forwards; }
+@keyframes fall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="daily-hero">
+  <div class="daily-hero-content">
+    <div class="daily-title">📅 {{ today }}</div>
+    <div class="daily-heading">🎯 Daily Challenge</div>
+    <div class="daily-sub">Mỗi ngày một thử thách · Điểm xếp hạng toàn cầu</div>
+    <div class="daily-reward">🎁 Phần thưởng: +50 XP & +10 💎 khi hoàn thành</div>
+  </div>
+</div>
+
+{% if not challenge_word %}
+<div class="alert alert-err">Chưa có thử thách hôm nay. Thử lại sau!</div>
+
+{% elif already_done %}
+<!-- Already completed -->
+<div class="done-card">
+  <div style="font-size:48px;margin-bottom:10px;">✅</div>
+  <div style="font-size:20px;font-weight:900;color:var(--green-dk);margin-bottom:6px;">Đã hoàn thành!</div>
+  <div style="color:var(--text2);font-size:14px;margin-bottom:16px;">Bạn đã làm Daily Challenge hôm nay rồi. Hẹn gặp lại ngày mai!</div>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+    <a href="/profile" class="btn btn-g btn-lg">👤 Xem hồ sơ</a>
+    <a href="/games" class="btn btn-p btn-lg">🎮 Chơi game</a>
+  </div>
+</div>
+
+{% else %}
+<!-- Challenge -->
+<div class="word-card" id="word-card">
+  <div style="font-size:12px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;">Từ vựng hôm nay là...</div>
+  <div class="wc-word" id="dc-word">{{ challenge_word.word }}</div>
+  <div class="wc-pron">{{ challenge_word.pronunciation or '' }}</div>
+  {% if challenge_word.part_of_speech %}<div><span class="wc-pos">{{ challenge_word.part_of_speech }}</span></div>{% endif %}
+  <div style="margin-top:14px;">
+    <button onclick="speak('{{ challenge_word.word }}','en')" class="speak-btn" style="font-size:28px;">🔊 Nghe phát âm</button>
+  </div>
+  {% if challenge_word.example %}
+  <div style="background:var(--bg2);border-radius:12px;padding:12px 16px;margin-top:16px;font-style:italic;font-size:14px;color:var(--text2);">
+    "{{ challenge_word.example }}"
+  </div>
+  {% endif %}
+</div>
+
+<div id="quiz-area">
+  <div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:12px;text-align:center;">Chọn nghĩa đúng:</div>
+  <div class="options-grid">
+    {% for opt in options %}
+    <button class="dc-opt" onclick="pickAnswer('{{ opt|replace("'","\\'")|replace('"', '\\"') }}', this)">{{ opt }}</button>
+    {% endfor %}
+  </div>
+</div>
+
+<div id="result-area" style="display:none;">
+  <div class="result-card">
+    <div class="rc-trophy" id="rc-trophy">🏆</div>
+    <div style="font-size:22px;font-weight:900;margin-bottom:6px;" id="rc-title"></div>
+    <div style="color:var(--text2);font-size:14px;margin-bottom:16px;" id="rc-sub"></div>
+    <div style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;
+      padding:12px 24px;border-radius:99px;font-size:18px;font-weight:800;margin-bottom:20px;" id="rc-xp">⚡ +0 XP</div>
+    {% if challenge_word.synonyms %}
+    <div style="background:var(--bg2);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--text2);">
+      <strong>Từ đồng nghĩa:</strong> {{ challenge_word.synonyms }}
+    </div>
+    {% endif %}
+    {% if challenge_word.example_vn %}
+    <div style="background:var(--bg2);border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);">
+      🇻🇳 {{ challenge_word.example_vn }}
+    </div>
+    {% endif %}
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <a href="/profile" class="btn btn-g btn-lg">👤 Xem hồ sơ</a>
+      <a href="/games" class="btn btn-p btn-lg">🎮 Chơi game</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Leaderboard -->
+{% if leaderboard %}
+<div style="margin-top:28px;">
+  <div style="font-size:15px;font-weight:800;margin-bottom:12px;">🏅 Bảng xếp hạng hôm nay</div>
+  <div class="card"><div class="card-body" style="padding:0;overflow:hidden;">
+    <table class="lb-table">
+      <thead><tr style="background:var(--bg2);">
+        <td style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;">#</td>
+        <td style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;">Người chơi</td>
+        <td style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;">Điểm</td>
+        <td style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;">XP</td>
+      </tr></thead>
+      <tbody>
+      {% for lb in leaderboard %}
+      <tr>
+        <td style="font-weight:800;color:{{ '#F59E0B' if loop.index==1 else '#94A3B8' if loop.index==2 else '#D97706' if loop.index==3 else 'var(--text2)' }};">
+          {{ '🥇' if loop.index==1 else '🥈' if loop.index==2 else '🥉' if loop.index==3 else loop.index }}
+        </td>
+        <td style="font-weight:700;">{{ lb.username }}</td>
+        <td style="font-weight:800;color:var(--orange);">{{ lb.score }}</td>
+        <td style="color:var(--purple);font-weight:700;">+{{ lb.xp_earned }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+</div>
+{% endif %}
+
+<div class="confetti-wrap" id="confetti"></div>
+
+<script>
+const CHALLENGE_ID = {{ challenge.id if challenge else 0 }};
+const CORRECT_ANS = "{{ challenge_word.meaning if challenge_word else '' }}";
+
+function speak(word, lang) {
+  if (window.LVPronunciation) return window.LVPronunciation.play(word, {language: lang, rate: 0.85});
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = lang==='ja'?'ja-JP':lang==='ko'?'ko-KR':'en-US';
+  u.rate = 0.85;
+  window.speechSynthesis.speak(u);
+}
+
+// Auto speak on load
+setTimeout(() => {
+  const word = document.getElementById('dc-word');
+  if (word) speak(word.textContent, 'en');
+}, 500);
+
+let answered = false;
+async function pickAnswer(selected, btn) {
+  if (answered) return;
+  answered = true;
+  const isCorrect = selected === CORRECT_ANS;
+  
+  document.querySelectorAll('.dc-opt').forEach(b => {
+    b.disabled = true;
+    if (b.textContent.trim() === CORRECT_ANS.trim()) b.classList.add('correct');
+  });
+  if (!isCorrect) btn.classList.add('wrong');
+  
+  const score = isCorrect ? 100 : 50;
+  const r = await fetch('/api/complete_daily', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({challenge_id: CHALLENGE_ID, score})
+  });
+  const d = await r.json();
+  
+  setTimeout(() => {
+    document.getElementById('quiz-area').style.display = 'none';
+    document.getElementById('result-area').style.display = 'block';
+    
+    if (isCorrect) {
+      document.getElementById('rc-trophy').textContent = '🎉';
+      document.getElementById('rc-title').textContent = 'Chính xác!';
+      document.getElementById('rc-sub').textContent = `${CORRECT_ANS}`;
+      launchConfetti();
+    } else {
+      document.getElementById('rc-trophy').textContent = '💡';
+      document.getElementById('rc-title').textContent = 'Học thêm nhé!';
+      document.getElementById('rc-sub').textContent = `Đáp án đúng: ${CORRECT_ANS}`;
+    }
+    document.getElementById('rc-xp').textContent = `⚡ +${d.xp_earned || 0} XP`;
+    
+    if (d.new_achievements && d.new_achievements.length > 0) {
+      d.new_achievements.forEach((ach, i) => {
+        setTimeout(() => showAchievementToast(ach.icon, ach.name), i * 1500 + 500);
+      });
+    }
+  }, 600);
+}
+
+function launchConfetti() {
+  const colors = ['#10B981','#3B82F6','#8B5CF6','#F59E0B','#EF4444','#06B6D4'];
+  const wrap = document.getElementById('confetti');
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const conf = document.createElement('div');
+      conf.className = 'conf';
+      conf.style.cssText = `left:${Math.random()*100}%;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};
+        width:${6+Math.random()*10}px;height:${6+Math.random()*10}px;
+        animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*.5}s;border-radius:${Math.random()>0.5?'50%':'2px'};`;
+      wrap.appendChild(conf);
+      setTimeout(() => conf.remove(), 4000);
+    }, i * 30);
+  }
+}
+
+function showAchievementToast(icon, name) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:80px;right:24px;z-index:9999;background:linear-gradient(135deg,#F59E0B,#EF4444);
+    color:#fff;border-radius:16px;padding:14px 20px;display:flex;align-items:center;gap:12px;
+    box-shadow:0 8px 32px rgba(239,68,68,.4);transform:translateX(120%);transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:300px;`;
+  t.innerHTML = `<span style="font-size:32px;">${icon}</span>
+    <div><div style="font-size:12px;opacity:.85;">🎉 Huy hiệu mới!</div><div style="font-size:16px;font-weight:800;">${name}</div></div>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.style.transform = 'translateX(0)', 50);
+  setTimeout(() => { t.style.transform = 'translateX(120%)'; setTimeout(() => t.remove(), 500); }, 4000);
+}
+</script>
+{% endblock %}

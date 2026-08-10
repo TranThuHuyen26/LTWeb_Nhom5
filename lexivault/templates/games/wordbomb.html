@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Word Bomb — LexiVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+<script src="/static/js/study.js"></script>
+<script src="/static/js/sfx.js"></script>
+<script>(function(){var t=localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+<div class="study-nav">
+  <a href="/deck/{{ d.id }}" class="study-x">✕</a>
+  <div class="study-bar"><div class="study-fill" id="prog" style="width:0%"></div></div>
+  <div id="ctr" style="font-size:13px;font-weight:700;color:var(--text2);"></div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="font-size:13px;font-weight:800;color:var(--purple);">⚡ <span id="live-score">0</span></div>
+    <button class="sfx-btn" id="sfx-tog">🔊</button>
+  <span id="ti" style="font-size:16px;cursor:pointer;" onclick="togT()">☀️</span>
+  </div>
+</div>
+<div class="study-wrap" id="main">
+  <div class="q-label">💣 Trả lời trước khi bom nổ!</div>
+  <div style="text-align:center;margin-bottom:8px;">
+    <div class="bomb-timer" id="bomb-timer">5</div>
+    <div style="width:200px;height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin:0 auto 12px;">
+      <div id="bomb-bar" style="height:100%;background:var(--orange);border-radius:99px;transition:width .1s;width:100%;"></div>
+    </div>
+    <div style="font-size:13px;color:var(--text2);">💣 Còn <span id="lives">3</span> lượt sai · Điểm: <span id="live-score2" style="color:var(--orange);font-weight:800;">0</span></div>
+  </div>
+  <div class="q-big" id="bomb-word" style="margin-bottom:6px;"></div>
+  <div style="font-size:14px;color:var(--blue);text-align:center;font-style:italic;margin-bottom:20px;" id="bomb-pron"></div>
+  <div class="opts" id="bomb-opts"></div>
+</div>
+<div class="study-wrap result" id="res" style="display:none;">
+  <div class="result-ico" id="res-ico">💥</div>
+  <div class="result-title" id="res-title">Bom nổ!</div>
+  <div style="color:var(--text2);font-size:13px;margin-bottom:10px;" id="res-sub"></div>
+  <div class="result-xp" id="res-xp">⚡ +0 XP</div>
+  <div class="result-stats">
+    <div class="rs"><div class="v" id="r-score">0</div><div class="l">🏆 Điểm</div></div>
+    <div class="rs"><div class="v" id="r-round">0</div><div class="l">✅ Vòng</div></div>
+    <div class="rs"><div class="v" id="r-best">0</div><div class="l">⏱️ Nhanh nhất</div></div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <button onclick="restart()" class="btn btn-r btn-lg">🔄 Thử lại</button>
+    <a href="/games" class="btn btn-ghost btn-lg">🎮 Game hub</a>
+    <a href="/deck/{{ d.id }}" class="btn btn-ghost btn-lg">← Về bộ từ</a>
+  </div>
+</div>
+<script>
+const words=shuffle({{ words|tojson }});const DECK_ID={{ d.id }};const LANG='{{ d.language }}';
+let idx=0,score=0,round=0,lives=3,bombTime=5,answered=false,bombInt,bestTime=999,t0=Date.now();
+applyT(localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
+
+function load(){
+  if(idx>=words.length)words.push(...shuffle([...words.slice(0,10)]));
+  answered=false;
+  const w=words[idx];
+  document.getElementById('bomb-word').textContent=w.word;
+  document.getElementById('bomb-pron').textContent=w.pronunciation?`[${w.pronunciation}]`:'';
+  document.getElementById('ctr').textContent=`Vòng ${round+1} · 💖 ${lives}`;
+  document.getElementById('live-score').textContent=score;
+  document.getElementById('live-score2').textContent=score;
+  speak(w.word,LANG);
+  const wrongs=getWrongs(words,w);
+  const opts=shuffle([w,...wrongs]);
+  const div=document.getElementById('bomb-opts');div.innerHTML='';
+  opts.forEach(o=>{
+    const b=document.createElement('button');b.className='opt';
+    b.textContent=o.meaning;b.onclick=()=>pick(o.meaning,w.meaning,b);div.appendChild(b);
+  });
+  startBomb();
+}
+let timeLeft=5;
+function startBomb(){
+  clearInterval(bombInt);timeLeft=bombTime;
+  updateBombUI();
+  bombInt=setInterval(()=>{
+    timeLeft-=.1;updateBombUI();
+    if(timeLeft<=0){clearInterval(bombInt);if(!answered){SFX.play("explode");bombExplode();}}
+  },100);
+}
+function updateBombUI(){
+  const t=Math.ceil(timeLeft);
+  document.getElementById('bomb-timer').textContent=t;
+  document.getElementById('bomb-bar').style.width=`${(timeLeft/bombTime)*100}%`;
+  const el=document.getElementById('bomb-timer');
+  if(timeLeft<=2){el.style.color='var(--red)';el.style.animation='shake .1s infinite';}
+  else if(timeLeft<=3){el.style.color='var(--orange)';el.style.animation='';}
+  else{el.style.color='var(--orange)';el.style.animation='';}
+}
+function bombExplode(){
+  answered=true;
+  SFX.play("wrong");lives--;document.getElementById('lives').textContent=lives;
+  document.querySelectorAll('.opt').forEach(b=>b.disabled=true);
+  const w=words[idx];
+  const fb=document.querySelector('.study-wrap');
+  fb.style.outline='3px solid var(--red)';
+  setTimeout(()=>{fb.style.outline='';if(lives<=0)gameOver();else{idx++;load();}},800);
+}
+async function pick(sel,ans,btn){
+  if(answered)return;answered=true;
+  clearInterval(bombInt);
+  const ok=sel===ans;
+  document.querySelectorAll('.opt').forEach(b=>{b.disabled=true;if(b.textContent===ans)b.classList.add('ok');});
+  if(!ok){btn.classList.add('ng');lives--;document.getElementById('lives').textContent=lives;}
+  else{
+    const t=Math.round((bombTime-timeLeft)*10)/10;
+    if(t<bestTime)bestTime=t;
+    const bonus=Math.ceil(timeLeft*10);
+    score+=bonus+10;round++;
+    bombTime=Math.max(2,bombTime-0.1);// speed up!
+  }
+  document.getElementById('live-score').textContent=score;
+  document.getElementById('live-score2').textContent=score;
+  await fetch('/api/progress',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({word_id:words[idx].id,deck_id:DECK_ID,correct:ok})});
+  setTimeout(()=>{if(lives<=0)gameOver();else{idx++;load();}},ok?400:700);
+}
+async function gameOver(){
+  clearInterval(bombInt);
+  document.getElementById('r-score').textContent=score;
+  document.getElementById('r-round').textContent=round;
+  document.getElementById('r-best').textContent=bestTime===999?'—':bestTime+'s';
+  document.getElementById('res-title').textContent=round>=10?'🏆 Xuất sắc!':'💥 Bom nổ!';
+  document.getElementById('res-sub').textContent=`Bạn qua ${round} vòng · Điểm: ${score}`;
+  document.getElementById('res-ico').textContent=round>=15?'🏆':round>=8?'⭐':'💣';
+  const d=await saveScore('wordbomb',DECK_ID,score,Math.round((Date.now()-t0)/1000));
+  document.getElementById('res-xp').textContent=`⚡ +${d.xp_earned||0} XP`;
+  document.getElementById('main').style.display='none';document.getElementById('res').style.display='block';
+}
+function restart(){clearInterval(bombInt);idx=0;score=0;round=0;lives=3;bombTime=5;bestTime=999;t0=Date.now();
+  document.getElementById('live-score').textContent=0;
+  document.getElementById('main').style.display='';document.getElementById('res').style.display='none';
+  words.sort(()=>Math.random()-.5);load();}
+initSoundToggle("sfx-tog");
+load();
+</script>
+</body></html>

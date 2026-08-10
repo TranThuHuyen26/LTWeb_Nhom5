@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Speed Match — LexiVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+<script src="/static/js/study.js"></script>
+<script src="/static/js/sfx.js"></script>
+<script>(function(){var t=localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+<div class="study-nav">
+  <a href="/deck/{{ d.id }}" class="study-x">✕</a>
+  <div class="study-bar"><div class="study-fill" id="prog" style="width:0%"></div></div>
+  <div id="ctr" style="font-size:13px;font-weight:700;color:var(--text2);"></div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="font-size:13px;font-weight:800;color:var(--purple);">⚡ <span id="live-score">0</span></div>
+    <button class="sfx-btn" id="sfx-tog">🔊</button>
+  <span id="ti" style="font-size:16px;cursor:pointer;" onclick="togT()">☀️</span>
+  </div>
+</div>
+<div class="study-wrap" id="main">
+  <div class="q-label">⚡ Từ và nghĩa có KHỚP không? · 60 giây</div>
+  <div style="text-align:center;margin-bottom:16px;">
+    <span class="bomb-timer" id="timer">60</span>
+    <div style="font-size:13px;color:var(--text2);">giây còn lại · Streak: <span id="streak-count" style="color:var(--orange);font-weight:800;">0</span></div>
+  </div>
+  <div class="speed-match-area">
+    <div class="sm-card">
+      <div class="sm-en" id="sm-word"></div>
+      <button onclick="speak(curWord,LANG)" class="speak-btn" style="font-size:20px;">🔊</button>
+    </div>
+    <div class="sm-card">
+      <div class="sm-vn" id="sm-mean"></div>
+    </div>
+  </div>
+  <div class="sm-actions">
+    <button class="sm-btn no-match" onclick="ans(false)">✗ Không khớp</button>
+    <button class="sm-btn match" onclick="ans(true)">✓ Khớp!</button>
+  </div>
+  <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--text3);">← / → hoặc nhấn nút</div>
+</div>
+<div class="study-wrap result" id="res" style="display:none;">
+  <div class="result-ico">⚡</div>
+  <div class="result-title">Time up!</div>
+  <div class="result-xp" id="res-xp">⚡ +0 XP</div>
+  <div class="result-stats">
+    <div class="rs"><div class="v" id="r-score">0</div><div class="l">🏆 Điểm</div></div>
+    <div class="rs"><div class="v" id="r-c">0</div><div class="l">✅ Đúng</div></div>
+    <div class="rs"><div class="v" id="r-streak">0</div><div class="l">🔥 Max Streak</div></div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <button onclick="restart()" class="btn btn-g btn-lg">🔄 Chơi lại</button>
+    <a href="/game/memorypairs/{{ d.id }}" class="btn btn-p btn-lg">🧩 Memory</a>
+    <a href="/deck/{{ d.id }}" class="btn btn-ghost btn-lg">← Về bộ từ</a>
+  </div>
+</div>
+<script>
+const words={{ words|tojson }};const DECK_ID={{ d.id }};const LANG='{{ d.language }}';
+let pool=shuffle([...words]);let idx=0,score=0,correct=0,streak=0,maxStreak=0;
+let isMatch=false,curWord='',curMean='',gameOver=false,t0=Date.now();
+let timerInt;
+applyT(localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
+
+function nextPair(){
+  if(idx>=pool.length){pool=shuffle([...words]);idx=0;}
+  const w=pool[idx++];curWord=w.word;
+  // 50% chance of showing wrong meaning
+  isMatch=Math.random()>0.5;
+  if(isMatch){curMean=w.meaning;}
+  else{const other=pool.find(x=>x.id!==w.id)||pool[0];curMean=other.meaning;}
+  document.getElementById('sm-word').textContent=curWord;
+  document.getElementById('sm-mean').textContent=curMean;
+  speak(curWord,LANG);
+}
+function ans(userSaysMatch){
+  if(gameOver)return;
+  const ok=(userSaysMatch===isMatch);
+  if(ok){SFX.play("match");score+=10+streak*2;correct++;streak++;maxStreak=Math.max(maxStreak,streak);}
+  else{SFX.play("noMatch");streak=0;}
+  document.getElementById('live-score').textContent=score;
+  document.getElementById('streak-count').textContent=streak;
+  // Flash feedback
+  const area=document.querySelector('.speed-match-area');
+  area.style.outline=`3px solid ${ok?'var(--green)':'var(--red)'}`;
+  setTimeout(()=>area.style.outline='',200);
+  nextPair();
+}
+function startTimer(){
+  let t=60;
+  timerInt=setInterval(()=>{
+    t--;document.getElementById('timer').textContent=t;
+    document.getElementById('prog').style.width=`${(60-t)/60*100}%`;
+    if(t<=10)document.getElementById('timer').style.color='var(--red)';
+    if(t<=0){clearInterval(timerInt);gameOver=true;finish();}
+  },1000);
+}
+async function finish(){
+  document.getElementById('r-score').textContent=score;
+  document.getElementById('r-c').textContent=correct;
+  document.getElementById('r-streak').textContent=maxStreak;
+  const d=await saveScore('speedmatch',DECK_ID,score,60);
+  document.getElementById('res-xp').textContent=`⚡ +${d.xp_earned||0} XP`;
+  document.getElementById('main').style.display='none';document.getElementById('res').style.display='block';
+}
+function restart(){clearInterval(timerInt);score=0;correct=0;streak=0;maxStreak=0;gameOver=false;idx=0;
+  document.getElementById('timer').textContent='60';document.getElementById('timer').style.color='';
+  document.getElementById('live-score').textContent=0;document.getElementById('streak-count').textContent=0;
+  document.getElementById('main').style.display='';document.getElementById('res').style.display='none';
+  nextPair();startTimer();}
+document.addEventListener('keydown',e=>{
+  if(e.code==='ArrowRight')ans(true);
+  if(e.code==='ArrowLeft')ans(false);
+});
+initSoundToggle("sfx-tog");
+nextPair();startTimer();
+</script>
+</body></html>

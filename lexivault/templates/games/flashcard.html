@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flashcard — LexiVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+<script src="/static/js/study.js"></script>
+<script src="/static/js/sfx.js"></script>
+<script>(function(){var t=localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+<div class="study-nav">
+  <a href="/deck/{{ d.id }}" class="study-x">✕</a>
+  <div class="study-bar"><div class="study-fill" id="prog" style="width:0%"></div></div>
+  <div id="ctr" style="font-size:13px;font-weight:700;color:var(--text2);"></div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="font-size:13px;font-weight:800;color:var(--purple);">⚡ <span id="live-score">0</span></div>
+    <button class="sfx-btn" id="sfx-tog">🔊</button>
+  <span id="ti" style="font-size:16px;cursor:pointer;" onclick="togT()">☀️</span>
+  </div>
+</div>
+<div class="study-wrap" id="main">
+  <div style="text-align:center;margin-bottom:6px;font-size:12px;color:var(--text3);font-weight:700;letter-spacing:.5px;">🃏 FLASHCARD · {{ d.emoji }} {{ d.name }}</div>
+  <div style="text-align:center;font-size:12px;color:var(--text3);margin-bottom:16px;">Space=lật · ←Chưa thuộc · →Đã biết · S=phát âm</div>
+  <div class="fc-scene" onclick="flip()" id="scene">
+    <div class="fc" id="fc">
+      <div class="fc-face">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:8px;" id="fc-pos"></div>
+        <div class="fc-word" id="fc-word"></div>
+        <div class="fc-pron" id="fc-pron"></div>
+        <button onclick="event.stopPropagation();speak(words[idx].word,LANG)" class="speak-btn" style="font-size:26px;margin-top:10px;">🔊</button>
+        <div class="fc-hint">Nhấn để xem nghĩa</div>
+      </div>
+      <div class="fc-face fc-back">
+        <div class="fc-meaning" id="fc-mean"></div>
+        <div class="fc-ex" id="fc-ex"></div>
+        <div class="fc-ex" id="fc-exvn" style="margin-top:6px;opacity:.75;"></div>
+        {% if d.language == "en" %}
+        <div id="fc-syn" style="font-size:12px;color:rgba(255,255,255,.7);margin-top:8px;"></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="fc-acts" id="acts" style="display:none;">
+    <button class="fc-btn fc-dunno" onclick="ans(false)">😕 Chưa thuộc</button>
+    <button class="fc-btn fc-know" onclick="ans(true)">😊 Đã biết!</button>
+  </div>
+  <div id="hint-area" style="text-align:center;margin-top:10px;">
+    <button class="btn btn-ghost btn-sm" onclick="flip()">👆 Lật thẻ để đánh giá</button>
+  </div>
+</div>
+<div class="study-wrap result" id="res" style="display:none;">
+  <div class="result-ico" id="res-ico">🏆</div>
+  <div class="result-title">Xong phiên học!</div>
+  <div style="color:var(--text2);font-size:13px;margin-bottom:10px;" id="res-sub"></div>
+  <div class="result-xp" id="res-xp">⚡ +0 XP</div>
+  <div class="result-stats">
+    <div class="rs"><div class="v" id="r-know">0</div><div class="l">😊 Đã biết</div></div>
+    <div class="rs"><div class="v" id="r-dunno">0</div><div class="l">😕 Chưa</div></div>
+    <div class="rs"><div class="v" id="r-acc">0%</div><div class="l">🎯 Tỉ lệ</div></div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <button onclick="restart()" class="btn btn-g btn-lg">🔄 Học lại</button>
+    <a href="/deck/{{ d.id }}" class="btn btn-ghost btn-lg">← Về bộ từ</a>
+    <a href="/game/quiz/{{ d.id }}" class="btn btn-b btn-lg">🧠 Quiz</a>
+  </div>
+</div>
+<script>
+const words=shuffle({{ words|tojson }});
+const DECK_ID={{ d.id }};const LANG='{{ d.language }}';
+let idx=0,known=0,unknown=0,flipped=false,t0=Date.now();
+applyT(localStorage.getItem('lv_t')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
+
+function load(){
+  if(idx>=words.length){finish();return;}
+  flipped=false;
+  const w=words[idx];
+  document.getElementById('fc-word').textContent=w.word;
+  document.getElementById('fc-pron').textContent=w.pronunciation?`[${w.pronunciation}]`:'';
+  document.getElementById('fc-pos').textContent=w.part_of_speech||'';
+  document.getElementById('fc-mean').textContent=w.meaning;
+  document.getElementById('fc-ex').textContent=w.example||'';
+  document.getElementById('fc-exvn').textContent=w.example_vn?`🇻🇳 ${w.example_vn}`:'';
+  const syn=document.getElementById('fc-syn');
+  if(syn)syn.textContent=w.synonyms?`≈ ${w.synonyms}`:'';
+  document.getElementById('fc').classList.remove('flipped');
+  document.getElementById('acts').style.display='none';
+  document.getElementById('hint-area').style.display='block';
+  document.getElementById('ctr').textContent=`${idx+1}/${words.length}`;
+  document.getElementById('prog').style.width=`${idx/words.length*100}%`;
+  document.getElementById('live-score').textContent=known*10;
+  setTimeout(()=>speak(w.word,LANG),300);
+}
+function flip(){
+  SFX.play("flip");
+  flipped=!flipped;
+  document.getElementById('fc').classList.toggle('flipped',flipped);
+  if(flipped){document.getElementById('acts').style.display='flex';document.getElementById('hint-area').style.display='none';}
+}
+async function ans(ok){
+  if(ok){known++;SFX.play("correct");}else{unknown++;SFX.play("wrong");}
+  await fetch('/api/progress',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({word_id:words[idx].id,deck_id:DECK_ID,correct:ok})});
+  idx++;load();
+}
+async function finish(){
+  document.getElementById('prog').style.width='100%';
+  const acc=Math.round(known/words.length*100);
+  document.getElementById('r-know').textContent=known;
+  document.getElementById('r-dunno').textContent=unknown;
+  document.getElementById('r-acc').textContent=acc+'%';
+  document.getElementById('res-ico').textContent=acc>=80?'🏆':acc>=50?'⭐':'💪';
+  document.getElementById('res-sub').textContent=`Ôn ${words.length} từ trong ${Math.round((Date.now()-t0)/60000)} phút`;
+  const score=known*10;
+  const d=await saveScore('flashcard',DECK_ID,score,Math.round((Date.now()-t0)/1000));
+  document.getElementById('res-xp').textContent=`⚡ +${d.xp_earned||0} XP`;
+  document.getElementById('main').style.display='none';
+  document.getElementById('res').style.display='block';
+}
+function restart(){idx=0;known=0;unknown=0;t0=Date.now();words.sort(()=>Math.random()-.5);
+  document.getElementById('main').style.display='';document.getElementById('res').style.display='none';load();}
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();if(!flipped)flip();}
+  if(e.code==='ArrowRight'&&flipped)ans(true);
+  if(e.code==='ArrowLeft'&&flipped)ans(false);
+  if(e.code==='KeyS')speak(words[idx]?.word,LANG);
+});
+initSoundToggle("sfx-tog");
+load();
+</script>
+</body></html>
