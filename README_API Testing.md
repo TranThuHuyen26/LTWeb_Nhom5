@@ -34,6 +34,21 @@
 
 <img width="1366" height="725" alt="image" src="https://github.com/user-attachments/assets/665f8717-9fd6-4090-8245-853eaf64efa0" />
 
+<b>10. Thêm từ vựng mới - Admin </b>
+
+<img width="1349" height="730" alt="image" src="https://github.com/user-attachments/assets/656380dc-2788-4102-a7f1-90fe6f0f47b1" />
+
+<b>11. Sửa thông tin từ vựng </b>
+
+<img width="1364" height="728" alt="image" src="https://github.com/user-attachments/assets/9e462bb0-29ca-48f3-9119-b21c8df87b6c" />
+
+<b>12. Xóa từ vựng </b>
+
+<img width="1366" height="729" alt="image" src="https://github.com/user-attachments/assets/72ee45e6-2f2a-48e6-80e2-ac20ed88c219" />
+
+<b>13. Khóa / Mở khóa tài khoản người dùng </b>
+
+<img width="1366" height="729" alt="image" src="https://github.com/user-attachments/assets/b8a7a25c-899c-4ba5-8a03-f3734305bab9" />
 
 
 
