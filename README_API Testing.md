@@ -26,6 +26,14 @@
 
 <img width="1366" height="727" alt="image" src="https://github.com/user-attachments/assets/b03cd1d3-95fb-4bcb-9178-bdd83c2ff8a7" />
 
+<b>8. Đăng nhập của Admin</b>
+
+<img width="1366" height="727" alt="image" src="https://github.com/user-attachments/assets/984b48a5-df22-45a1-9c27-2867d3d0b856" />
+
+<b>9. Xem danh sách từ vựng trong trang Quản trị </b>
+
+<img width="1366" height="725" alt="image" src="https://github.com/user-attachments/assets/665f8717-9fd6-4090-8245-853eaf64efa0" />
+
 
 
 
